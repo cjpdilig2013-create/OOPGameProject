@@ -1,8 +1,17 @@
 package com.badlogic.drop.toon_BattleScreenSystem;
 
+// --- [Beach] ดึงคลาส Creature สำหรับสเตตัส ---
 import com.badlogic.drop.beach_CreatureStatsSystem.Creature;
+
+// --- [CJ] ดึงคลาสทั้งหมดของ CJ มาใช้งานโดยตรง ---
 import com.badlogic.drop.cj_BattleSystem.Battle;
+import com.badlogic.drop.cj_BattleSystem.BattleResult; // ดึงคลาสเก็บผลการต่อสู้
+import com.badlogic.drop.cj_BattleSystem.TurnManager;  // ดึงคลาสจัดการเทิร์น
+
+// --- [OT] ดึงคลาส Move สำหรับระบบสกิล ---
 import com.badlogic.drop.ot_MoveSkillsSystem.Move;
+
+// --- LibGDX & Java Utilities ---
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.ScreenAdapter;
 import com.badlogic.gdx.graphics.Color;
@@ -18,20 +27,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-//BattleScreen (simple demo version, no images)
-//Layout:   Enemy name + HP (top left)          Player name + HP (right)
-//          Dialogue box (bottom left)          Buttons FIGHT / BAG / PARTY / RUN (bottom right)
-//
-//It only calls CJ's Battle class, all the battle logic stays in Battle.
-//
-//Example (in Main, which must "extends Game"):
-//    Battle battle = new Battle(playerCreature, enemy);
-//    setScreen(new BattleScreen(battle, playerMoves, enemyMoves));
 public class BattleScreen extends ScreenAdapter implements BattleMenu.Listener {
 
     private final Battle battle;
-    private final List<Move> playerMoves;   // moves shown after pressing FIGHT
-    private final List<Move> enemyMoves;    // moves the enemy picks from (random)
+    private final List<Move> playerMoves;
+    private final List<Move> enemyMoves;
 
     private final OrthographicCamera camera = new OrthographicCamera();
     private final FitViewport viewport = new FitViewport(800, 480, camera);
@@ -43,7 +43,7 @@ public class BattleScreen extends ScreenAdapter implements BattleMenu.Listener {
     private final DialogueBox dialogue = new DialogueBox(10, 10, 460, 130);
     private final BattleMenu menu = new BattleMenu(480, 10, 310, 130, this);
 
-    private boolean inMoveMenu = false;   // false = FIGHT/BAG/PARTY/RUN, true = list of moves
+    private boolean inMoveMenu = false;
 
     public BattleScreen(Battle battle, List<Move> playerMoves, List<Move> enemyMoves) {
         this.battle = battle;
@@ -51,20 +51,25 @@ public class BattleScreen extends ScreenAdapter implements BattleMenu.Listener {
         this.enemyMoves = enemyMoves;
         font.getData().setScale(1.2f);
 
+        // [CJ] เรียกใช้ระบบเริ่มการต่อสู้
         battle.startBattle();
         showMainMenu("Battle start!");
     }
 
-    //--------------------------------------------------------------------------------------------------------------------------------------
-    //These 4 small methods are the ONLY place that touches Beach's and OT's code.
-    //When their classes are finished, check these names. If one is different, fix it here only.
-    private String creatureName(Creature c) { return c.getName(); }     // Beach: Creature.getName()
-    private int hpOf(Creature c)            { return c.getHp(); }       // Beach: Creature.getHp()
-    private int maxHpOf(Creature c)         { return c.getMaxHp(); }    // Beach: Creature.getMaxHp()
-    private String moveName(Move m)         { return m.getName(); }     // OT: Move.getName()
-//--------------------------------------------------------------------------------------------------------------------------------------
+    @Override
+    public void show() {
+        viewport.update(Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), true);
+    }
 
-    //---------------- Menus ----------------
+    // [Beach] ดึงข้อมูลจาก Creature
+    private String creatureName(Creature c) { return c.getName(); }
+    private int hpOf(Creature c)            { return c.getCurrentHp(); }
+    private int maxHpOf(Creature c)         { return c.getMaxHp(); }
+
+    // [OT] ดึงข้อมูลชื่อสกิลจาก Move
+    private String moveName(Move m)         { return m.getName(); }
+
+    // ---------------- เมนูและการแสดงผล ----------------
 
     private void showMainMenu(String message) {
         inMoveMenu = false;
@@ -91,50 +96,63 @@ public class BattleScreen extends ScreenAdapter implements BattleMenu.Listener {
         menu.setButtons(labels);
     }
 
-    //A button was clicked (index = position of the button)
     @Override
     public void onButtonClicked(int index) {
+        if (battle.isBattleOver()) {
+            Gdx.app.exit();
+            return;
+        }
+
         if (!inMoveMenu) {
             if (index == 0) {
-                showMoveMenu();                                  // FIGHT
+                showMoveMenu();
             } else if (index == 1) {
-                dialogue.setText("Bag: Coming Soon");            // BAG
+                dialogue.setText("Bag: Coming Soon");
             } else if (index == 2) {
-                dialogue.setText("Party: Coming Soon");          // PARTY
+                dialogue.setText("Party: Coming Soon");
             } else {
-                Gdx.app.exit();                                  // RUN
+                Gdx.app.exit();
             }
         } else {
             if (index == playerMoves.size()) {
-                showMainMenu("");                                // BACK
+                showMainMenu("");
             } else {
-                useMove(playerMoves.get(index));                 // a move
+                executeTurn(playerMoves.get(index));
             }
         }
     }
 
-    //---------------- Battle ----------------
+    // ---------------- ลอจิกการเทิร์น ----------------
 
-    //Player uses a move, then the enemy uses a random move
-    private void useMove(Move playerMove) {
-        String message = creatureName(battle.getPlayer()) + " used " + moveName(playerMove) + "!";
-        battle.playerTurn(playerMove);
+    private void executeTurn(Move playerMove) {
+        // 1. [CJ] โยนสกิลผู้เล่นให้ Battle ประมวลผล
+        String playerResult = battle.playerTurn(playerMove);
+        String fullMessage = playerResult;
 
-        if (!battle.isBattleOver()) {
+        // 2. [CJ] ดึง TurnManager ออกมาเพื่อเช็กว่าตอนนี้ถึงตาของศัตรูจริงหรือไม่
+        TurnManager turnManager = battle.getTurnManager();
+        if (!battle.isBattleOver() && turnManager.isEnemyTurn() && !enemyMoves.isEmpty()) {
             Move enemyMove = enemyMoves.get(random.nextInt(enemyMoves.size()));
-            message += "\n" + creatureName(battle.getEnemy()) + " used " + moveName(enemyMove) + "!";
-            battle.enemyTurn(enemyMove);
+            String enemyResult = battle.enemyTurn(enemyMove);
+            fullMessage += "\n" + enemyResult;
         }
 
+        // 3. [CJ] ถ้าการต่อสู้จบลง ดึงคลาส BattleResult ของ CJ ออกมาใช้งานเพื่อแสดงผลแพ้ชนะ
         if (battle.isBattleOver()) {
-            dialogue.setText(message + "\n" + battle.getWinner() + " wins!");
-            menu.hide();
+            battle.getWinner(); // สั่งให้ Battle คำนวณผู้ชนะและอัปเดตค่าเข้า BattleResult
+
+            BattleResult result = battle.getBattleResult(); // [CJ] ดึงออบเจกต์ BattleResult ออกมาตรงๆ
+            dialogue.setText(fullMessage + "\nResult: " + result.getResult()); // แสดงผลลัพธ์ เช่น "Player Wins!"
+
+            List<String> endButtons = new ArrayList<>();
+            endButtons.add("EXIT");
+            menu.setButtons(endButtons);
         } else {
-            showMainMenu(message);
+            showMainMenu(fullMessage);
         }
     }
 
-    //---------------- Drawing ----------------
+    // ---------------- การวาดหน้าจอ (Rendering) ----------------
 
     @Override
     public void render(float delta) {
@@ -143,27 +161,29 @@ public class BattleScreen extends ScreenAdapter implements BattleMenu.Listener {
             menu.handleClick(click.x, click.y);
         }
 
+        // [Beach] & [CJ] ดึง Creature ของผู้เล่นและศัตรูออกมาจาก Battle
         Creature player = battle.getPlayer();
         Creature enemy = battle.getEnemy();
 
         ScreenUtils.clear(0.8f, 0.92f, 0.8f, 1f);
         viewport.apply();
+        camera.update();
         shape.setProjectionMatrix(camera.combined);
         batch.setProjectionMatrix(camera.combined);
 
-        //Boxes
         shape.begin(ShapeRenderer.ShapeType.Filled);
-        drawInfoBox(40, 390, 300, 70);      // enemy
-        drawInfoBox(460, 170, 320, 70);     // player
+        drawInfoBox(40, 390, 300, 70);
+        drawInfoBox(460, 170, 320, 70);
         dialogue.drawShapes(shape);
         menu.drawShapes(shape);
         shape.end();
 
-        //Text
         batch.begin();
         font.setColor(Color.BLACK);
+        // [Beach] วาดชื่อและค่า HP จากคลาส Creature
         font.draw(batch, creatureName(enemy) + "\nHP " + hpOf(enemy) + " / " + maxHpOf(enemy), 54, 448);
         font.draw(batch, creatureName(player) + "\nHP " + hpOf(player) + " / " + maxHpOf(player), 474, 228);
+
         dialogue.drawText(batch, font);
         menu.drawText(batch, font);
         batch.end();

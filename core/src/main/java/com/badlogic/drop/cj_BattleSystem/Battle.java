@@ -60,59 +60,58 @@ public class Battle {
 //--------------------------------------------------------------------------------------------------------------------------------------
     //Move turn (Player) (We will use MoveSkillsSystem Import)
     //This is where the player attacks and if the enemy is still alive then switch to the enemy. If not then the battle is finished
-    public void playerTurn(Move move) {
-
-        //Prevents a move from being used if a battle is over
-        if (isBattleOver()) {
-            return;
-        }
-
-        if (!turnManager.isPlayerTurn()) {
-            return;
-        }
-
-        useMove(player , enemy, move);
-
-        if (enemy.isAlive()) {
-            turnManager.switchToEnemy();
-        } else {
-            getWinner();
-        }
+public String playerTurn(Move move) {
+    if (isBattleOver()) {
+        return "Battle is already over.";
     }
+
+    if (!turnManager.isPlayerTurn()) {
+        return "It is not the player's turn.";
+    }
+
+    String result = useMove(player, enemy, move);
+
+    if (enemy.isAlive()) {
+        turnManager.switchToEnemy();
+    } else {
+        getWinner();
+    }
+
+    return result;
+}
 
 
     //Move turn (Enemy)
-    public void enemyTurn(Move move) {
-
+    public String enemyTurn(Move move) {
         if (isBattleOver()) {
-            return;
+            return "Battle is already over.";
         }
 
         if (!turnManager.isEnemyTurn()) {
-            return;
+            return "It is not the enemy's turn.";
         }
 
-        useMove(enemy, player, move);
+        String result = useMove(enemy, player, move);
 
         if (player.isAlive()) {
             turnManager.switchToPlayer();
         } else {
             getWinner();
         }
+
+        return result;
     }
 //--------------------------------------------------------------------------------------------------------------------------------------
 
 
 
     //Makes sure that when we use our move it actually hits our target AKA the enemy
-    public void useMove(Creature user, Creature target, Move move) {
-
-        //Prevents game from crashing if a move isn't selected
+    public String useMove(Creature user, Creature target, Move move) {
         if (move == null) {
-            return;
+            return "No move selected.";
         }
 
-        move.use(user, target);
+        return move.use(user, target);
     }
 
     //Now we add getters so that the UI is easier to read

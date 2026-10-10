@@ -1,4 +1,4 @@
-import com.badlogic.drop.beach_CreatureStatsSystem.Creature;
+package com.badlogic.drop.beach_CreatureStatsSystem;
 
 /**
  * An opposing creature. Enemies can talk (dialogue before the fight)
@@ -17,6 +17,11 @@ public class Enemy extends Creature {
 
     public Enemy(String name, int level, int maxHp, int attack, int defense, int speed) {
         this(name, level, maxHp, attack, defense, speed, "", false);
+    }
+
+    /** Same as above with level 1 and no dialogue. */
+    public Enemy(String name, int maxHp, int attack, int defense, int speed) {
+        this(name, 1, maxHp, attack, defense, speed);
     }
 
     public String getDialogue() { return dialogue; }

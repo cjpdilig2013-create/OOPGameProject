@@ -1,6 +1,4 @@
-import com.badlogic.drop.beach_CreatureStatsSystem.Creature;
-
-packagepackage com.badlogic.drop.beach_CreatureStatsSystem;
+package com.badlogic.drop.beach_CreatureStatsSystem;
 
 /**
  * A creature controlled by the player (e.g. Liquid Cat, Insecure Sword).
@@ -11,6 +9,11 @@ public class PlayerCreature extends Creature {
     public PlayerCreature(String name, int level, int maxHp, int attack, int defense, int speed) {
         super(name, level, maxHp, attack, defense, speed);
         this.exp = 0;
+    }
+
+    /** Same as above with level 1. */
+    public PlayerCreature(String name, int maxHp, int attack, int defense, int speed) {
+        this(name, 1, maxHp, attack, defense, speed);
     }
 
     public int getExp() { return exp; }

@@ -1,190 +1,364 @@
+
 package com.badlogic.drop.toon_BattleScreenSystem;
 
-import com.badlogic.drop.beach_CreatureStatsSystem.Creature;
-import com.badlogic.drop.cj_BattleSystem.Battle;
+//Garlic Man's Attack
 import com.badlogic.drop.ot_MoveSkillsSystem.Move;
-import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.ScreenAdapter;
-import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.OrthographicCamera;
-import com.badlogic.gdx.graphics.g2d.BitmapFont;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.drop.ot_MoveSkillsSystem.DamageMove;
+
+//Drawing HP Bar
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
-import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.graphics.Color;
+
+import com.badlogic.drop.cj_BattleSystem.Battle;
+import com.badlogic.drop.beach_CreatureStatsSystem.PlayerCreature;
+import com.badlogic.drop.beach_CreatureStatsSystem.Enemy;
+
+//Keyboard Controls
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
+
+
+//Provides structure for game screen
+import com.badlogic.gdx.ScreenAdapter;
+
+//Holds an image into graphics memory
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.utils.ScreenUtils;
-import com.badlogic.gdx.utils.viewport.FitViewport;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
+import com.badlogic.drop.ot_MoveSkillsSystem.Move;
+import com.badlogic.drop.ot_MoveSkillsSystem.DamageMove;
 
-//BattleScreen (simple demo version, no images)
-//Layout:   Enemy name + HP (top left)          Player name + HP (right)
-//          Dialogue box (bottom left)          Buttons FIGHT / BAG / PARTY / RUN (bottom right)
-//
-//It only calls CJ's Battle class, all the battle logic stays in Battle.
-//
-//Example (in Main, which must "extends Game"):
-//    Battle battle = new Battle(playerCreature, enemy);
-//    setScreen(new BattleScreen(battle, playerMoves, enemyMoves));
-public class BattleScreen extends ScreenAdapter implements BattleMenu.Listener {
+//OOP Inheritance where we are extending from ScreenAdapter
+public class BattleScreen extends ScreenAdapter {
 
-    private final Battle battle;
-    private final List<Move> playerMoves;   // moves shown after pressing FIGHT
-    private final List<Move> enemyMoves;    // moves the enemy picks from (random)
+    //SpriteBatch allows as the draw the picture onto the game window
+    private SpriteBatch batch;
 
-    private final OrthographicCamera camera = new OrthographicCamera();
-    private final FitViewport viewport = new FitViewport(800, 480, camera);
-    private final ShapeRenderer shape = new ShapeRenderer();
-    private final SpriteBatch batch = new SpriteBatch();
-    private final BitmapFont font = new BitmapFont();
-    private final Random random = new Random();
+    private Texture background;
+    //Stores a reference to the loaded Garlic Man image
+    private Texture garlicIdle;
+    private Texture garlicAttack;
+    private Texture garlicHurt;
+    private Texture garlicDead;
 
-    private final DialogueBox dialogue = new DialogueBox(10, 10, 460, 130);
-    private final BattleMenu menu = new BattleMenu(480, 10, 310, 130, this);
+    //Store which sprite is currently displayed
+    private Texture currentSprite;
 
-    private boolean inMoveMenu = false;   // false = FIGHT/BAG/PARTY/RUN, true = list of moves
+    // Draws rectangles for our HP bars
+    private ShapeRenderer shapeRenderer;
 
-    public BattleScreen(Battle battle, List<Move> playerMoves, List<Move> enemyMoves) {
-        this.battle = battle;
-        this.playerMoves = playerMoves;
-        this.enemyMoves = enemyMoves;
-        font.getData().setScale(1.2f);
+    //Tracks how many seconds remain before returning to Idle
+    private float animationTimer = 0f;
 
-        battle.startBattle();
-        showMainMenu("Battle start!");
-    }
+    //Storing Liquid Cat, Garlic Man, and the battle system
+    private PlayerCreature player;
+    private Enemy enemy;
+    private Battle battle;
 
-    //--------------------------------------------------------------------------------------------------------------------------------------
-    //These 4 small methods are the ONLY place that touches Beach's and OT's code.
-    //When their classes are finished, check these names. If one is different, fix it here only.
-    private String creatureName(Creature c) { return c.getName(); }     // Beach: Creature.getName()
-    private int hpOf(Creature c)            { return c.getHp(); }       // Beach: Creature.getHp()
-    private int maxHpOf(Creature c)         { return c.getMaxHp(); }    // Beach: Creature.getMaxHp()
-    private String moveName(Move m)         { return m.getName(); }     // OT: Move.getName()
-//--------------------------------------------------------------------------------------------------------------------------------------
+    //POLYMORPHISM
+    private Move splashHit;
 
-    //---------------- Menus ----------------
+    // Garlic Man's basic attack
+    private Move garlicPunch;
 
-    private void showMainMenu(String message) {
-        inMoveMenu = false;
-        String question = "What will " + creatureName(battle.getPlayer()) + " do?";
-        dialogue.setText(message.isEmpty() ? question : message + "\n" + question);
+    // Timer that delays the enemy's turn
+    private float enemyTurnTimer = 0f;
 
-        List<String> labels = new ArrayList<>();
-        labels.add("FIGHT");
-        labels.add("BAG");
-        labels.add("PARTY");
-        labels.add("RUN");
-        menu.setButtons(labels);
-    }
-
-    private void showMoveMenu() {
-        inMoveMenu = true;
-        dialogue.setText("Choose a move!");
-
-        List<String> labels = new ArrayList<>();
-        for (Move move : playerMoves) {
-            labels.add(moveName(move));
-        }
-        labels.add("BACK");
-        menu.setButtons(labels);
-    }
-
-    //A button was clicked (index = position of the button)
+    //Loading the images and it will then prepare the screen of garlic_idle (Our 1st enemy)
     @Override
-    public void onButtonClicked(int index) {
-        if (!inMoveMenu) {
-            if (index == 0) {
-                showMoveMenu();                                  // FIGHT
-            } else if (index == 1) {
-                dialogue.setText("Bag: Coming Soon");            // BAG
-            } else if (index == 2) {
-                dialogue.setText("Party: Coming Soon");          // PARTY
-            } else {
-                Gdx.app.exit();                                  // RUN
-            }
-        } else {
-            if (index == playerMoves.size()) {
-                showMainMenu("");                                // BACK
-            } else {
-                useMove(playerMoves.get(index));                 // a move
-            }
+    public void show() {
+
+        batch = new SpriteBatch();
+
+        // Create the shape drawing tool
+        shapeRenderer = new ShapeRenderer();
+
+        //Loading the background
+        background = new Texture("backgrounds/battle-background.png");
+        // Load Garlic Man's four sprites
+        garlicIdle = new Texture("enemies/garlic_idle.png");
+        garlicAttack = new Texture("enemies/garlic_attack.png");
+        garlicHurt = new Texture("enemies/garlic_hurt.png");
+        garlicDead = new Texture("enemies/garlic_dead.png");
+
+        // Keep all sprites sharp when scaled
+        Texture[] sprites = {
+            garlicIdle, garlicAttack, garlicHurt, garlicDead
+        };
+
+        //For every texture stored in the sprites array, run the code inside the loop
+        for (Texture sprite : sprites) {
+            sprite.setFilter(
+                Texture.TextureFilter.Nearest,
+                Texture.TextureFilter.Nearest
+            );
         }
+
+        //Garlic Man starts in the Idle state
+        currentSprite = garlicIdle;
+
+
+        //Create Liquid Cat with HP, Attack, Defense and Speed
+        player = new PlayerCreature(
+            "Liquid Cat",
+            100,
+            20,
+            15,
+            18
+        );
+
+    //Create Garlic Man with HP, Attack, Defense and Speed
+        enemy = new Enemy(
+            "Garlic Man",
+            60,
+            12,
+            8,
+            12
+        );
+
+    //Connect both creatures to CJ's battle system
+        battle = new Battle(player, enemy);
+
+    //Start the battle with the player's turn
+        battle.startBattle();
+
+        // Create Liquid Cat's basic attack
+        splashHit = new DamageMove(
+            "Splash Hit",
+            10,
+            "Liquid Cat splashes Garlic Man!"
+        );
+
+        // Garlic Man's attack
+        garlicPunch = new DamageMove(
+            "Garlic Punch",
+            10,
+            "Garlic Man punches Liquid Cat!"
+        );
+
     }
-
-    //---------------- Battle ----------------
-
-    //Player uses a move, then the enemy uses a random move
-    private void useMove(Move playerMove) {
-        String message = creatureName(battle.getPlayer()) + " used " + moveName(playerMove) + "!";
-        battle.playerTurn(playerMove);
-
-        if (!battle.isBattleOver()) {
-            Move enemyMove = enemyMoves.get(random.nextInt(enemyMoves.size()));
-            message += "\n" + creatureName(battle.getEnemy()) + " used " + moveName(enemyMove) + "!";
-            battle.enemyTurn(enemyMove);
-        }
-
-        if (battle.isBattleOver()) {
-            dialogue.setText(message + "\n" + battle.getWinner() + " wins!");
-            menu.hide();
-        } else {
-            showMainMenu(message);
-        }
-    }
-
-    //---------------- Drawing ----------------
+    //Keeps drawing garlic man while the screen is active
+    //We draw repeatedly because
 
     @Override
     public void render(float delta) {
-        if (Gdx.input.justTouched()) {
-            Vector2 click = viewport.unproject(new Vector2(Gdx.input.getX(), Gdx.input.getY()));
-            menu.handleClick(click.x, click.y);
+
+        //Keyboard controls for testing Garlic Man's four states
+        // Press 1 to make Liquid Cat attack Garlic Man
+        if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_1)) {
+
+            // Only attack if it is the player's turn
+            if (battle.getTurnManager().isPlayerTurn()
+                && !battle.isBattleOver()) {
+
+                // Execute the attack using CJ's Battle System
+                String result = battle.playerTurn(splashHit);
+
+                // Show the attack result in IntelliJ's console
+                System.out.println(result);
+
+                // Display Garlic Man's remaining HP
+                System.out.println(
+                    "Garlic Man HP: " + enemy.getCurrentHp()
+                );
+
+                // Change the sprite depending on whether Garlic Man survived
+
+                // If Garlic Man survives, play the Hurt animation
+                if (enemy.isAlive()) {
+                    currentSprite = garlicHurt;
+                    animationTimer = 0.4f;
+
+                    // Schedule Garlic Man's counterattack
+                    enemyTurnTimer = 0.8f;
+
+                } else {
+                    // Garlic Man is defeated, so he cannot attack back
+                    currentSprite = garlicDead;
+                    animationTimer = 0f;
+                    enemyTurnTimer = 0f;
+                }
+
+            }
         }
 
-        Creature player = battle.getPlayer();
-        Creature enemy = battle.getEnemy();
+        if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_2)) {
+            currentSprite = garlicAttack;
+            animationTimer = 0.4f;
+        }
 
-        ScreenUtils.clear(0.8f, 0.92f, 0.8f, 1f);
-        viewport.apply();
-        shape.setProjectionMatrix(camera.combined);
-        batch.setProjectionMatrix(camera.combined);
+        if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_3)) {
+            currentSprite = garlicHurt;
+            animationTimer = 0.4f;
+        }
 
-        //Boxes
-        shape.begin(ShapeRenderer.ShapeType.Filled);
-        drawInfoBox(40, 390, 300, 70);      // enemy
-        drawInfoBox(460, 170, 320, 70);     // player
-        dialogue.drawShapes(shape);
-        menu.drawShapes(shape);
-        shape.end();
+        if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_4)) {
+            currentSprite = garlicDead;
+            animationTimer = 0.0f;
+        }
 
-        //Text
+        //Count down only when an animation is active
+        if (animationTimer > 0f) {
+
+            //Subtract the time that passed since the previous frame
+            animationTimer -= delta;
+
+            //Once time runs out, return to Idle
+            if (animationTimer <= 0f) {
+                currentSprite = garlicIdle;
+                animationTimer = 0f;
+            }
+        }
+
+
+// Wait before Garlic Man performs his counterattack
+        if (enemyTurnTimer > 0f) {
+
+            // Count down using the time between frames
+            enemyTurnTimer -= delta;
+
+            // Only attack once the timer reaches zero
+            if (enemyTurnTimer <= 0f) {
+
+                enemyTurnTimer = 0f;
+
+                // Check that Garlic Man is alive and it is his turn
+                if (enemy.isAlive()
+                    && battle.getTurnManager().isEnemyTurn()
+                    && !battle.isBattleOver()) {
+
+                    // Execute Garlic Man's move using CJ's battle system
+                    String result = battle.enemyTurn(garlicPunch);
+
+                    System.out.println(result);
+
+                    // Display Liquid Cat's remaining HP
+                    System.out.println(
+                        "Liquid Cat HP: " + player.getCurrentHp()
+                    );
+
+                    // Play Garlic Man's attack animation
+                    currentSprite = garlicAttack;
+                    animationTimer = 0.4f;
+                }
+            }
+        }
+
+
+
+        //Clear the previous frame
+        ScreenUtils.clear(0.85f, 0.92f, 0.80f, 1f);
+
+        //Get the current window dimensions once
+        float screenWidth = Gdx.graphics.getWidth();
+        float screenHeight = Gdx.graphics.getHeight();
+
+        //Scale background without changing its aspect ratio
+        float scale = Math.max(
+            screenWidth / background.getWidth(),
+            screenHeight / background.getHeight()
+        );
+
+        float bgWidth = background.getWidth() * scale;
+        float bgHeight = background.getHeight() * scale;
+
+        //Center background; some edges may be cropped
+        float bgX = (screenWidth - bgWidth) / 2;
+        float bgY = (screenHeight - bgHeight) / 2;
+
+        //Scale Garlic Man relative to the window height
+        float garlicSize = screenHeight * 0.35f;
+
+        //Keep Garlic Man toward the right side
+        float garlicX = screenWidth * 0.70f - garlicSize / 2;
+        float garlicY = screenHeight * 0.48f;
+
         batch.begin();
-        font.setColor(Color.BLACK);
-        font.draw(batch, creatureName(enemy) + "\nHP " + hpOf(enemy) + " / " + maxHpOf(enemy), 54, 448);
-        font.draw(batch, creatureName(player) + "\nHP " + hpOf(player) + " / " + maxHpOf(player), 474, 228);
-        dialogue.drawText(batch, font);
-        menu.drawText(batch, font);
+
+        //Draw background first
+        batch.draw(background, bgX, bgY, bgWidth, bgHeight);
+
+        //Draw Garlic Man on top
+        batch.draw(currentSprite, garlicX, garlicY,
+            garlicSize, garlicSize);
+
         batch.end();
+
+        // Match ShapeRenderer's coordinates to SpriteBatch
+        shapeRenderer.setProjectionMatrix(batch.getProjectionMatrix());
+
+// Position HP bar above Garlic Man
+        float hpBarWidth = garlicSize;
+        float hpBarHeight = Math.max(8f, screenHeight * 0.018f);
+
+        float hpBarX = garlicX;
+        float hpBarY = garlicY + garlicSize + 10f;
+
+// Draw Garlic Man's current HP
+        drawHpBar(
+            hpBarX,
+            hpBarY,
+            hpBarWidth,
+            hpBarHeight,
+            enemy.getCurrentHp(),
+            enemy.getMaxHp()
+        );
     }
 
-    private void drawInfoBox(float x, float y, float w, float h) {
-        shape.setColor(Color.DARK_GRAY);
-        shape.rect(x, y, w, h);
-        shape.setColor(Color.WHITE);
-        shape.rect(x + 3, y + 3, w - 6, h - 6);
+
+    private void drawHpBar(float x, float y,
+                           float width, float height,
+                           int currentHp, int maxHp) {
+
+        // Calculate how full the HP bar should be
+        float hpPercent = Math.max(0f, Math.min(1f,
+            (float) currentHp / maxHp
+        ));
+
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+
+        // Draw the dark background of the HP bar
+        shapeRenderer.setColor(Color.DARK_GRAY);
+        shapeRenderer.rect(x, y, width, height);
+
+        // Change the HP bar color depending on remaining HP
+        if (hpPercent > 0.5f) {
+            shapeRenderer.setColor(Color.GREEN);
+        } else if (hpPercent > 0.2f) {
+            shapeRenderer.setColor(Color.YELLOW);
+        } else {
+            shapeRenderer.setColor(Color.RED);
+        }
+
+        // Draw the remaining HP as a filled rectangle
+        shapeRenderer.rect(x, y, width * hpPercent, height);
+
+        shapeRenderer.end();
     }
 
+    //Resizing it so that it isnt weird when we fullscreen
     @Override
     public void resize(int width, int height) {
-        viewport.update(width, height, true);
+
+        //Update our drawing coordinates when the window is resized.
+        batch.getProjectionMatrix().setToOrtho2D(
+            0, 0, width, height
+        );
     }
 
+    //Disposes of the graphics when we are done
     @Override
     public void dispose() {
-        shape.dispose();
+
+        shapeRenderer.dispose();
+        background.dispose();
+
+        garlicIdle.dispose();
+        garlicAttack.dispose();
+        garlicHurt.dispose();
+        garlicDead.dispose();
+
         batch.dispose();
-        font.dispose();
     }
 }

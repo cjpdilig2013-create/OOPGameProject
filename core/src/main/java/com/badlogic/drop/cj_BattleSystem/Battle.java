@@ -1,7 +1,6 @@
 package com.badlogic.drop.cj_BattleSystem;
 
 //Importing Creature Stats and Enemy Stats
-
 import com.badlogic.drop.beach_CreatureStatsSystem.Enemy;
 import com.badlogic.drop.beach_CreatureStatsSystem.PlayerCreature;
 import com.badlogic.drop.ot_MoveSkillsSystem.Move;
@@ -61,6 +60,11 @@ public class Battle {
     //Move turn (Player) (We will use MoveSkillsSystem Import)
     //This is where the player attacks and if the enemy is still alive then switch to the enemy. If not then the battle is finished
 public String playerTurn(Move move) {
+
+    if (move == null) {
+        return "Please select a move.";
+    }
+
     if (isBattleOver()) {
         return "Battle is already over.";
     }
@@ -83,6 +87,11 @@ public String playerTurn(Move move) {
 
     //Move turn (Enemy)
     public String enemyTurn(Move move) {
+
+        if (move == null) {
+            return "Enemy has no move selected.";
+        }
+
         if (isBattleOver()) {
             return "Battle is already over.";
         }

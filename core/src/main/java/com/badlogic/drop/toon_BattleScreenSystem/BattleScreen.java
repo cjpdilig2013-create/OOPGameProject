@@ -17,7 +17,7 @@ import com.badlogic.drop.beach_CreatureStatsSystem.Enemy;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 
-
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
 //Provides structure for game screen
 import com.badlogic.gdx.ScreenAdapter;
 
@@ -26,22 +26,20 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.utils.ScreenUtils;
 
-import com.badlogic.drop.ot_MoveSkillsSystem.Move;
-import com.badlogic.drop.ot_MoveSkillsSystem.DamageMove;
-
 //OOP Inheritance where we are extending from ScreenAdapter
 public class BattleScreen extends ScreenAdapter {
 
     //SpriteBatch allows as the draw the picture onto the game window
     private SpriteBatch batch;
 
+    private BitmapFont font;
     private Texture background;
     //Stores a reference to the loaded Garlic Man image
     private Texture garlicIdle;
     private Texture garlicAttack;
     private Texture garlicHurt;
     private Texture garlicDead;
-
+    private Texture insecureSword;
     //Store which sprite is currently displayed
     private Texture currentSprite;
 
@@ -70,12 +68,15 @@ public class BattleScreen extends ScreenAdapter {
     public void show() {
 
         batch = new SpriteBatch();
-
         // Create the shape drawing tool
         shapeRenderer = new ShapeRenderer();
+        font = new BitmapFont();
 
         //Loading the background
         background = new Texture("backgrounds/battle-background.png");
+
+        insecureSword = new Texture("characters/swordstand.png");
+
         // Load Garlic Man's four sprites
         garlicIdle = new Texture("enemies/garlic_idle.png");
         garlicAttack = new Texture("enemies/garlic_attack.png");
@@ -280,9 +281,28 @@ public class BattleScreen extends ScreenAdapter {
         batch.draw(background, bgX, bgY, bgWidth, bgHeight);
 
         //Draw Garlic Man on top
+
+
+
+        //draw sword
         batch.draw(currentSprite, garlicX, garlicY,
             garlicSize, garlicSize);
+        float playerSize = screenHeight * 0.55f;
 
+        float playerWidth = playerSize
+            * insecureSword.getWidth()
+            / insecureSword.getHeight();
+
+        float playerX = screenWidth * 0.10f;
+        float playerY = (screenHeight - playerSize) / 6.5f;
+
+        batch.draw(
+            insecureSword,
+            playerX,
+            playerY,
+            playerWidth,
+            playerSize
+        );
         batch.end();
 
         // Match ShapeRenderer's coordinates to SpriteBatch
@@ -304,7 +324,9 @@ public class BattleScreen extends ScreenAdapter {
             enemy.getCurrentHp(),
             enemy.getMaxHp()
         );
+        drawAttackMenu();
     }
+    //123
 
 
     private void drawHpBar(float x, float y,
@@ -350,7 +372,6 @@ public class BattleScreen extends ScreenAdapter {
     //Disposes of the graphics when we are done
     @Override
     public void dispose() {
-
         shapeRenderer.dispose();
         background.dispose();
 
@@ -358,7 +379,81 @@ public class BattleScreen extends ScreenAdapter {
         garlicAttack.dispose();
         garlicHurt.dispose();
         garlicDead.dispose();
-
+        insecureSword.dispose();
+        font.dispose();
         batch.dispose();
     }
-}
+        private void drawAttackMenu() {
+            float screenWidth = Gdx.graphics.getWidth();
+            float screenHeight = Gdx.graphics.getHeight();
+
+            float fontScale = screenHeight / 720f* 2.5f;
+            fontScale = Math.max(0.8f, Math.min(fontScale, 1000.0f));
+            font.setColor(Color.BLACK);
+            font.getData().setScale(fontScale);
+
+            float menuWidth = screenWidth * 0.55f;
+            float menuHeight = screenHeight * 0.22f;
+            float menuX = screenWidth - menuWidth - 20f;
+            float menuY = 20f;
+
+            float gap = 10f;
+            float cellWidth = (menuWidth - gap * 3f) / 2f;
+            float cellHeight = (menuHeight - gap * 3f) / 2f;
+
+            // Draw translucent white background
+            Gdx.gl.glEnable(com.badlogic.gdx.graphics.GL20.GL_BLEND);
+            Gdx.gl.glBlendFunc(
+                com.badlogic.gdx.graphics.GL20.GL_SRC_ALPHA,
+                com.badlogic.gdx.graphics.GL20.GL_ONE_MINUS_SRC_ALPHA
+            );
+
+            shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+            shapeRenderer.setColor(1f, 1f, 1f, 0.35f);
+            shapeRenderer.rect(menuX, menuY, menuWidth, menuHeight);
+            shapeRenderer.end();
+            shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+            shapeRenderer.setColor(Color.WHITE);
+
+            shapeRenderer.rect(menuX, menuY, menuWidth, menuHeight);
+
+            for (int row = 0; row < 2; row++) {
+                for (int col = 0; col < 2; col++) {
+                    float x = menuX + gap + col * (cellWidth + gap);
+                    float y = menuY + gap + row * (cellHeight + gap);
+
+                    shapeRenderer.rect(x, y, cellWidth, cellHeight);
+                }
+            }
+
+            shapeRenderer.end();
+            Gdx.gl.glDisable(com.badlogic.gdx.graphics.GL20.GL_BLEND);
+
+            // วาดข้อความในแต่ละช่อง
+            batch.begin();
+
+            font.setColor(Color.BLACK);
+            font.getData().setScale(fontScale);
+
+
+            font.draw(batch, "1. Splash Hit",
+                menuX + gap + 8f,
+                menuY + gap + cellHeight + gap + cellHeight / 2f + 5f);
+
+            font.draw(batch, "2. Attack 2",
+                menuX + gap + cellWidth + gap + 8f,
+                menuY + gap + cellHeight + gap + cellHeight / 2f + 5f);
+
+            font.draw(batch, "3. Attack 3",
+                menuX + gap + 8f,
+                menuY + gap + cellHeight / 2f + 5f);
+
+            font.draw(batch, "4. Attack 4",
+                menuX + gap + cellWidth + gap + 8f,
+                menuY + gap + cellHeight / 2f + 5f);
+
+            batch.end();
+        }
+
+    }
+

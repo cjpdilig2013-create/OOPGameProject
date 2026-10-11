@@ -74,7 +74,7 @@ public class EnemyAssets {
         Music[] tracks = {garlicMusic, tungMusic, calcMusic, bookMusic, nekMusic};
         for (Music track : tracks) {
             track.setLooping(true);
-            track.setVolume(0.15f);
+            track.setVolume(0.35f);
         }
 
         // SOUND EFFECTS: short sounds played only on an attack or defeat.

@@ -14,6 +14,7 @@ import com.badlogic.gdx.audio.Sound;
 import java.util.Random;
 import com.badlogic.drop.ot_MoveSkillsSystem.HealMove;
 import com.badlogic.drop.ot_MoveSkillsSystem.SpecialSkillMove;
+import com.badlogic.drop.ot_MoveSkillsSystem.ChargeMove;
 
 // OOP Inheritance: BattleScreen extends ScreenAdapter.
 // This class controls the game's flow, not how each image is drawn.
@@ -44,9 +45,14 @@ public class BattleScreen extends ScreenAdapter {
     private Sound[] slashSounds;
     private final Random random = new Random();
 
+    private Sound debuffSound;
+
     private float playerHitFlashTimer = 0f;
     private static final float PLAYER_HIT_FLASH_DURATION = 0.20f;
     private boolean showShield = false;
+
+    private float enemyBuffScale = 1.0f;
+    private float enemyRedFlashTimer = 0f;
 
     // Reuse the existing battle system
     private PlayerCreature player;
@@ -59,16 +65,24 @@ public class BattleScreen extends ScreenAdapter {
     private Move healMove;
     private Move specialSkillMove;
 
+    private Move[] enemyMoves;
+
+
+
 
 
     @Override
     public void show() {
+        enemy = EnemyFactory.createEnemy(round);
 
         slashSounds = new Sound[] {
             Gdx.audio.newSound(Gdx.files.internal("sounds/slashsound01.mp3")),
             Gdx.audio.newSound(Gdx.files.internal("sounds/slashsound02.mp3")),
             Gdx.audio.newSound(Gdx.files.internal("sounds/slashsound03.mp3"))
         };
+        debuffSound = Gdx.audio.newSound(
+            Gdx.files.internal("sounds/debuff01.mp3")
+        );
         // Create renderer + assets only once when this battle screen opens.
         renderer = new BattleRenderer();
         assets = new EnemyAssets();
@@ -78,17 +92,17 @@ public class BattleScreen extends ScreenAdapter {
         // PLAYER STATS: create Insecure Sword only once so HP carries between all rounds (healing comes later).
         player = new PlayerCreature("Insecure Sword", 100, 20, 15, 18);
         // EnemyFactory centralizes enemy stats and moves.
-        enemy = EnemyFactory.createEnemy(round);
+
         battle = new Battle(player, enemy);
         battle.startBattle();
         //1 move
-        splashHit = new DamageMove("Splash Hit", 5,
+        splashHit = new DamageMove("Splash Hit", 500,
             "Insecure Sword attacks Garlic Man!");
 
         //2 move
         defendMove = new DefendMove(
             "Defend",
-            100,
+            9999,
             "Insecure Sword braces for an incoming attack!"
         );
 
@@ -100,10 +114,13 @@ public class BattleScreen extends ScreenAdapter {
         );
 
         specialSkillMove = new SpecialSkillMove();
-
-        enemyMove = EnemyFactory.createEnemyMove(round);
+        // Create the enemy's two moves
+        enemyMoves = EnemyFactory.createEnemyMoves(round);
+        enemyMove = enemyMoves[0];
         battleMessage = battleStatus("A wild Garlic Man appeared!");
     }
+
+
 
     @Override
     public void render(float delta) {
@@ -132,6 +149,7 @@ public class BattleScreen extends ScreenAdapter {
                 airSlashTimer = AIR_SLASH_DURATION;
                 int index = random.nextInt(slashSounds.length);
                 slashSounds[index].play();
+
 
                 showPlayerSword = false;
                 swordHideTimer = SWORD_HIDE_DURATION;
@@ -282,49 +300,74 @@ public class BattleScreen extends ScreenAdapter {
                 enemyTurnTimer = 0f;
 
                 // Check that the current enemy is alive and it is its turn
-                if (enemy.isAlive()
-                    && battle.getTurnManager().isEnemyTurn()
-                    && !battle.isBattleOver()) {
 
+                int previousPlayerHp = player.getCurrentHp();
+                boolean shieldWasActive = showShield;
 
-
-                    int previousPlayerHp = player.getCurrentHp();
-
-                    //enemyturn
-                    String result = battle.enemyTurn(enemyMove);
-
-                    if (showShield) {
-                        renderer.playBlockSound();
-                    }
-                    if (player.getCurrentHp() < previousPlayerHp) {
-                        playerHitFlashTimer = PLAYER_HIT_FLASH_DURATION;
-                    }
-                    showShield = false;
-
-
-
-
-
-                    System.out.println(result);
-                    assets.playEnemyAttack(round);
-                    // The move name now comes from EnemyFactory, so we do not
-                    // need to add a new condition every time a round is added.
-                    battleMessage = battleStatus(enemyDisplayName + " used "
-                        + EnemyFactory.getMoveName(round) + "!");
-                    if (!player.isAlive()) {
-                        battleMessage = battleStatus("Insecure Sword fainted! Game over.");
-                        assets.stopMusic();
-                    }
-
-                    // Display Insecure Sword's remaining HP
-                    System.out.println(
-                        "Sword HP: " + player.getCurrentHp()
-                    );
-
-                    // Play the current enemy's attack animation
-                    currentSprite = assets.getAttack(round);
-                    animationTimer = 0.75f; // Let the attack animation linger
+                // Keep using the same ChargeMove object while charging.
+                if (!(enemyMove instanceof ChargeMove
+                    && ((ChargeMove) enemyMove).isCharged())) {
+                    enemyMove = enemyMoves[random.nextInt(enemyMoves.length)];
                 }
+
+                String result = battle.enemyTurn(enemyMove);
+                boolean enemyIsCharging = result.contains("is charging up");
+
+                if (enemyIsCharging) {
+                    renderer.playEnemyBuffAnimation();
+                }
+                // A charging turn does not consume the shield.
+
+                boolean playerWasDamaged =
+                    player.getCurrentHp() < previousPlayerHp;
+
+                if (!enemyIsCharging && shieldWasActive) {
+                    // The shield blocks the incoming attack.
+                    renderer.playBlockSound();
+                    showShield = false;
+                }
+
+                if (playerWasDamaged) {
+                    playerHitFlashTimer = PLAYER_HIT_FLASH_DURATION;
+                }
+                if (enemyRedFlashTimer > 0f) {
+                    enemyRedFlashTimer -= delta;
+
+                    if (enemyRedFlashTimer <= 0f) {
+                        enemyRedFlashTimer = 0f;
+                        enemyBuffScale = 1.0f;
+                    }
+                }
+
+                System.out.println(result);
+
+                // Detect whether this turn was spent charging.
+                battleMessage = battleStatus(result);
+
+                if (enemyIsCharging) {
+                    // Play debuff sound when the enemy starts charging.
+                    debuffSound.play(0.3f);
+
+                    currentSprite = assets.getIdle(round);
+                    animationTimer = 0f;
+                } else {
+                    // Play attack effects when the enemy releases the attack.
+                    assets.playEnemyAttack(round);
+                    currentSprite = assets.getAttack(round);
+                    animationTimer = 0.75f;
+                }
+
+                if (!player.isAlive()) {
+                    battleMessage = battleStatus(
+                        "Insecure Sword fainted! Game over."
+                    );
+                    assets.stopMusic();
+                }
+
+                System.out.println(
+                    "Sword HP: " + player.getCurrentHp()
+                );
+
             }
         }
         if (airSlashActive) {
@@ -408,6 +451,10 @@ public class BattleScreen extends ScreenAdapter {
         if (assets != null) {
             assets.dispose();
         }
+        if (debuffSound != null) {
+            debuffSound.dispose();
+            debuffSound = null;
+        }
     }
 
 
@@ -417,6 +464,7 @@ public class BattleScreen extends ScreenAdapter {
     // against Garlic Man or Tung Tung Man remains lost against Calculator.
     // This also leaves room to add your healing mechanic later.
     private void startNextRound() {
+        showShield = false;
         player.removeAttackBuff();
         round++; // 1 -> 2 -> 3
         waitingForNextRound = false; // Allow normal attack input again.
@@ -436,7 +484,8 @@ public class BattleScreen extends ScreenAdapter {
         // ENEMY MOVE: chosen per opponent by EnemyFactory.
 
 
-        enemyMove = EnemyFactory.createEnemyMove(round);
+        enemyMoves = EnemyFactory.createEnemyMoves(round);
+        enemyMove = enemyMoves[0];
 
         // Change the music and show the new round's opening message.
         assets.playMusic(round);

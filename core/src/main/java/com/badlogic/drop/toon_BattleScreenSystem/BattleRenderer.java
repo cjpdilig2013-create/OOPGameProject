@@ -68,6 +68,9 @@ public class BattleRenderer {
     private boolean playingHealAnimation = false;
 
     private Sound buffSound;
+    private float enemyBuffScale = 1.0f;
+    private float enemyRedFlashTimer = 0f;
+    private static final float ENEMY_BUFF_DURATION = 0.5f;
 
 
     private Texture shadowSword;
@@ -164,6 +167,9 @@ public class BattleRenderer {
         healAnimationTime = 0f;
         playingHealAnimation = true;
     }
+    public void playEnemyBuffAnimation() {
+        enemyRedFlashTimer = ENEMY_BUFF_DURATION;
+    }
 
 
     // ONE rendering entry point shared by Garlic Man and Tung Tung Man.
@@ -241,11 +247,49 @@ public class BattleRenderer {
             batch.draw(background, bgX, bgY, bgWidth, bgHeight);
 
             // ENEMY SPRITE: currentSprite changes between idle, attack, hurt and dead.
-            // The bigger enemySize value makes Tung Tung visibly larger in round 2.
-            // Draw the enemy with temporary transparency.
+
+            // ENEMY SPRITE: Buff makes the enemy grow and turn red.
+        float enemyDelta = Gdx.graphics.getDeltaTime();
+
+        enemyRedFlashTimer = Math.max(
+            0f,
+            enemyRedFlashTimer - enemyDelta
+        );
+
+        // Smoothly enlarge and shrink the enemy
+        float enemyBuffScale = 1.0f;
+
+        if (enemyRedFlashTimer > 0f) {
+            float progress =
+                1f - enemyRedFlashTimer / ENEMY_BUFF_DURATION;
+
+            enemyBuffScale = 1.0f + 0.3f
+                * (float) Math.sin(progress * Math.PI);
+        }
+
+// Keep the enemy centered while its size changes
+        float buffedEnemySize = enemySize * enemyBuffScale;
+        float buffedEnemyX =
+            enemyX - (buffedEnemySize - enemySize) / 2f;
+        float buffedEnemyY =
+            enemyY - (buffedEnemySize - enemySize) / 2f;
+
+// Preserve transparency during enemy fade effects
+        if (enemyRedFlashTimer > 0f) {
+            batch.setColor(1f, 0.1f, 1f, enemyAlpha);
+        } else {
             batch.setColor(1f, 1f, 1f, enemyAlpha);
-            batch.draw(currentSprite, enemyX, enemyY, enemySize, enemySize);
-            batch.setColor(Color.WHITE);
+        }
+
+        batch.draw(
+            currentSprite,
+            buffedEnemyX,
+            buffedEnemyY,
+            buffedEnemySize,
+            buffedEnemySize
+        );
+
+        batch.setColor(Color.WHITE);
 
     // Draw Air Slash over the enemy during the player's attack.
             if (showAirSlash) {
@@ -686,6 +730,7 @@ public class BattleRenderer {
         if (buffSound != null) {
             buffSound.dispose();
         }
+
 
     }
 }

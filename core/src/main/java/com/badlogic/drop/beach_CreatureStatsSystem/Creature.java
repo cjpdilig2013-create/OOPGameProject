@@ -30,14 +30,26 @@ public class Creature {
      * one incoming hit. A hit that lands always deals at least 1.
      * @return the damage actually dealt
      */
+
     public int takeDamage(int amount) {
-        if (amount <= 0) return 0;
-        int finalDamage = Math.max(0, amount - defendReduction);
+        if (amount <= 0) {
+            return 0;
+        }
+
         int before = stats.getHp();
-        stats.setHp(before - finalDamage);
+
+        // Apply shield reduction to this incoming hit.
+        int finalDamage = Math.max(0, amount - defendReduction);
+
+        // A successful hit consumes the shield,
+        // even if the shield blocks all damage.
         clearDefendReduction();
+
+        stats.setHp(Math.max(0, before - finalDamage));
+
         return before - stats.getHp();
     }
+
 
     /**
      * Restores HP (never above max HP).

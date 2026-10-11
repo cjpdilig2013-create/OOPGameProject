@@ -12,6 +12,7 @@ import com.badlogic.gdx.ScreenAdapter;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.audio.Sound;
 import java.util.Random;
+import com.badlogic.drop.ot_MoveSkillsSystem.HealMove;
 
 // OOP Inheritance: BattleScreen extends ScreenAdapter.
 // This class controls the game's flow, not how each image is drawn.
@@ -54,6 +55,7 @@ public class BattleScreen extends ScreenAdapter {
     private Move enemyMove;
 
     private Move defendMove;
+    private Move healMove;
 
 
 
@@ -77,13 +79,24 @@ public class BattleScreen extends ScreenAdapter {
         enemy = EnemyFactory.createEnemy(round);
         battle = new Battle(player, enemy);
         battle.startBattle();
-        splashHit = new DamageMove("Splash Hit", 50,
+        //1 move
+        splashHit = new DamageMove("Splash Hit", 5,
             "Insecure Sword attacks Garlic Man!");
+
+        //2 move
         defendMove = new DefendMove(
             "Defend",
             100,
             "Insecure Sword braces for an incoming attack!"
         );
+
+        //3 move
+        healMove = new HealMove(
+            "Heal",
+            50,
+            "Insecure Sword restores 50 HP!"
+        );
+
 
 
 
@@ -177,7 +190,7 @@ public class BattleScreen extends ScreenAdapter {
 
                 // Use the existing DefendMove through the Battle system
                 String result = battle.playerTurn(defendMove);
-
+                renderer.playShieldSound();
                 showShield = true;
 
                 System.out.println(result);
@@ -197,11 +210,24 @@ public class BattleScreen extends ScreenAdapter {
             }
         }
 
+        if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_3)) {
+            if (!waitingForNextRound && !allRoundsWon
+                && battle.getTurnManager().isPlayerTurn()
+                && !battle.isBattleOver()
+                && player.isAlive()) {
 
-        if (!waitingForNextRound && !allRoundsWon && Gdx.input.isKeyJustPressed(Input.Keys.NUM_3)) {
-            currentSprite = assets.getHurt(round);
-            animationTimer = 0.4f;
+                String result = battle.playerTurn(healMove);
+
+                System.out.println(result);
+
+                battleMessage = battleStatus(result);
+
+                if (enemy.isAlive() && !battle.isBattleOver()) {
+                    enemyTurnTimer = 1.5f;
+                }
+            }
         }
+
 
         if (!waitingForNextRound && !allRoundsWon && Gdx.input.isKeyJustPressed(Input.Keys.NUM_4)) {
             currentSprite = assets.getDead(round);
@@ -238,16 +264,23 @@ public class BattleScreen extends ScreenAdapter {
                     && battle.getTurnManager().isEnemyTurn()
                     && !battle.isBattleOver()) {
 
-                    int previousPlayerHp = player.getCurrentHp();
 
+
+                    int previousPlayerHp = player.getCurrentHp();
 
                     //enemyturn
                     String result = battle.enemyTurn(enemyMove);
-                    showShield = false;
 
+                    if (showShield) {
+                        renderer.playBlockSound();
+                    }
                     if (player.getCurrentHp() < previousPlayerHp) {
                         playerHitFlashTimer = PLAYER_HIT_FLASH_DURATION;
                     }
+                    showShield = false;
+
+
+
 
 
                     System.out.println(result);
@@ -378,8 +411,6 @@ public class BattleScreen extends ScreenAdapter {
 
         // PLAYER MOVE: same placeholder Splash Hit for now.
         // ENEMY MOVE: chosen per opponent by EnemyFactory.
-        splashHit = new DamageMove("Splash Hit", 50,
-            "Insecure Sword attacks " + enemyDisplayName + "!");
 
 
         enemyMove = EnemyFactory.createEnemyMove(round);

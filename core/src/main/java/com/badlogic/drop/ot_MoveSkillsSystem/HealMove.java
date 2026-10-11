@@ -1,3 +1,4 @@
+
 package com.badlogic.drop.ot_MoveSkillsSystem;
 
 import com.badlogic.drop.beach_CreatureStatsSystem.Creature;
@@ -10,16 +11,14 @@ public class HealMove extends Move {
 
     @Override
     public String use(Creature user, Creature target) {
-        int oldHp = user.getCurrentHp();
+        int healed = user.heal(getPower());
 
-        user.heal(getPower());
-
-        int healedAmount = user.getCurrentHp() - oldHp;
+        if (healed == 0) {
+            return user.getName() + " used " + getName()
+                + ", but recovered no HP!";
+        }
 
         return user.getName() + " used " + getName()
-            + "!"
-            + "\nHealed " + healedAmount + " HP."
-            + "\n" + user.getName() + " HP: "
-            + user.getCurrentHp() + "/" + user.getMaxHp();
+            + " and recovered " + healed + " HP!";
     }
 }

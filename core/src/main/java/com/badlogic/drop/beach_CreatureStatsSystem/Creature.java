@@ -45,8 +45,12 @@ public class Creature {
      */
     public int heal(int amount) {
         if (amount <= 0) return 0;
+
         int before = stats.getHp();
-        stats.setHp(before + amount);
+        int maxHp = stats.getMaxHp();
+
+        stats.setHp(Math.min(maxHp, before + amount));
+
         return stats.getHp() - before;
     }
 

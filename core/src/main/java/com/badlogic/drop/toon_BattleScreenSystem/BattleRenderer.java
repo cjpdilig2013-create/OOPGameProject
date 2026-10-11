@@ -9,6 +9,8 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.drop.beach_CreatureStatsSystem.PlayerCreature;
 import com.badlogic.drop.beach_CreatureStatsSystem.Enemy;
+import com.badlogic.gdx.audio.Sound;
+import java.util.Random;
 // Sword idle animation
 
 
@@ -25,6 +27,7 @@ public class BattleRenderer {
     private final Texture airSlashTexture;
     private float swordFloatTimer = 0f;
     private Texture shieldTexture;
+    private com.badlogic.gdx.audio.Sound shieldSound;
 
     private static final float FLOAT_RADIUS = 12f;
     private static final float FLOAT_SPEED = 2f;
@@ -40,6 +43,9 @@ public class BattleRenderer {
     private static final float SHADOW_ALPHA = 0.22f;
     private static final float SHADOW_OFFSET_X = -5f;
     private static final float SHADOW_OFFSET_Y = -4f;
+    //shield
+    private final Sound[] blockSounds = new Sound[3];
+    private final Random random = new Random();
 
     private Texture shadowSword;
 
@@ -52,12 +58,37 @@ public class BattleRenderer {
         shieldTexture = new Texture(
             Gdx.files.internal("effect/shield8bit.png")
         );
+        shieldSound = Gdx.audio.newSound(
+            Gdx.files.internal("sounds/block02.mp3")
+        );
+        blockSounds[0] = Gdx.audio.newSound(
+            Gdx.files.internal("sounds/block01.mp3")
+        );
+        blockSounds[1] = Gdx.audio.newSound(
+            Gdx.files.internal("sounds/block03.mp3")
+        );
+        blockSounds[2] = Gdx.audio.newSound(
+            Gdx.files.internal("sounds/block04.mp3")
+        );
+
+
+
+
 
 
         updateDialoguePosition(
             Gdx.graphics.getWidth(),
             Gdx.graphics.getHeight()
         );
+    }
+    public void playBlockSound() {
+        int index = random.nextInt(blockSounds.length);
+        blockSounds[index].play(0.8f);
+    }
+    public void playShieldSound() {
+        if (shieldSound != null) {
+            shieldSound.play(0.8f);
+        }
     }
 
     // ONE rendering entry point shared by Garlic Man and Tung Tung Man.
@@ -501,7 +532,7 @@ public class BattleRenderer {
             menuX + gap + cellWidth + gap + 8f,
             menuY + gap + cellHeight + gap + cellHeight / 2f + 5f);
 
-        font.draw(batch, "3. Attack 3",
+        font.draw(batch, "3. Heal",
             menuX + gap + 8f,
             menuY + gap + cellHeight / 2f + 5f);
 
@@ -516,10 +547,21 @@ public class BattleRenderer {
         if (shieldTexture != null) {
             shieldTexture.dispose();
         }
+        if (shieldSound != null) {
+            shieldSound.dispose();
+        }
+        for (Sound sound : blockSounds) {
+            if (sound != null) {
+                sound.dispose();
+            }
+        }
         shapeRenderer.dispose();
         font.dispose();
         dialogueFont.dispose();
         batch.dispose();
         airSlashTexture.dispose();
+
+
+
     }
 }

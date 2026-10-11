@@ -41,6 +41,13 @@ public class BattleRenderer {
     private static final float SHADOW_FLOAT_SPEED = 2.0f;
     private static final float SHADOW_FLOAT_HEIGHT = 12f;
 
+    // Sword buff pulse effect
+    private float buffAnimationTimer = 0f;
+    private static final float BUFF_ANIMATION_DURATION = 0.3f;
+    private static final float BUFF_MAX_SCALE = 1.2f;
+    // Red flash effect when using Buff
+    private float redFlashTimer = 0f;
+    private static final float RED_FLASH_DURATION = 0.25f;
 
     // Shadow sword effect
     private static final float SHADOW_ALPHA = 0.22f;
@@ -59,6 +66,8 @@ public class BattleRenderer {
     private Animation<TextureRegion> healAnimation;
     private float healAnimationTime = 0f;
     private boolean playingHealAnimation = false;
+
+    private Sound buffSound;
 
 
     private Texture shadowSword;
@@ -100,6 +109,9 @@ public class BattleRenderer {
         healTexture = new Texture(
             Gdx.files.internal("effect/heal_spritesheet.png")
         );
+        buffSound = Gdx.audio.newSound(
+            Gdx.files.internal("sounds/buff01.mp3")
+        );
 
         TextureRegion[][] frames = TextureRegion.split(
             healTexture,
@@ -116,11 +128,22 @@ public class BattleRenderer {
         healAnimation = new Animation<>(0.05f, healFrames);
 
 
+
         updateDialoguePosition(
             Gdx.graphics.getWidth(),
             Gdx.graphics.getHeight()
         );
     }
+    public void playBuffAnimation() {
+        buffAnimationTimer = BUFF_ANIMATION_DURATION;
+        redFlashTimer = RED_FLASH_DURATION;
+        // เล่นเสียง Buff
+        if (buffSound != null) {
+            buffSound.play(0.8f);
+        }
+    }
+
+
     public void playHealSound() {
         int index = random.nextInt(healSounds.length);
 
@@ -141,6 +164,7 @@ public class BattleRenderer {
         healAnimationTime = 0f;
         playingHealAnimation = true;
     }
+
 
     // ONE rendering entry point shared by Garlic Man and Tung Tung Man.
     // The screen supplies current textures, HP, round number, and message.
@@ -254,7 +278,29 @@ public class BattleRenderer {
 
 
             //sword
-            swordAnimationTimer += Gdx.graphics.getDeltaTime();
+                float delta = Gdx.graphics.getDeltaTime();
+                swordAnimationTimer += delta;
+        // Update red flash timer
+        redFlashTimer = Math.max(0f, redFlashTimer - delta);
+
+        // Update buff animation
+                buffAnimationTimer = Math.max(
+                    0f,
+                    buffAnimationTimer - delta
+                );
+
+        // Smoothly enlarge and shrink the sword
+                float buffProgress = 0f;
+
+                if (buffAnimationTimer > 0f) {
+                    float progress =
+                        1f - buffAnimationTimer / BUFF_ANIMATION_DURATION;
+
+                    buffProgress = (float) Math.sin(progress * Math.PI);
+                }
+
+                float buffScale =
+                    1f + (BUFF_MAX_SCALE - 1f) * buffProgress;
 
             float swordOffsetY =
                 (float) Math.sin(swordAnimationTimer * SWORD_FLOAT_SPEED)
@@ -278,6 +324,7 @@ public class BattleRenderer {
 
                 if (showPlayer) {
                     float swordY = playerY + swordOffsetY;
+                    // Player red flash effect when using Buff
                     // เงาชั้นที่ 4: จางที่สุดและอยู่ห่างที่สุด
                     batch.setColor(0f, 0f, 0f, 0.08f);
                     batch.draw(
@@ -316,18 +363,25 @@ public class BattleRenderer {
                     );
 
                     // ดาบหลัก: กระพริบสีขาวเมื่อโดนโจมตี
+                    // ดาบหลัก: เปลี่ยนสีเมื่อใช้ Buff หรือโดนโจมตี
                     if (playerHitFlash) {
+                        // โดนตี: สีขาวจาง
                         batch.setColor(1f, 1f, 1f, 0.55f);
+                    } else if (redFlashTimer > 0f) {
+                        // ใช้ Buff: สีแดงชั่วคราว
+                        batch.setColor(1f, 0f, 0f, 1f);
                     } else {
+                        // ปกติ: สีเดิม
                         batch.setColor(Color.WHITE);
                     }
 
+
                     batch.draw(
                         insecureSword,
-                        playerX,
-                        swordY,
-                        playerWidth,
-                        playerSize
+                        playerX - (playerWidth * buffScale - playerWidth) / 2f,
+                        swordY - (playerSize * buffScale - playerSize) / 2f,
+                        playerWidth * buffScale,
+                        playerSize * buffScale
                     );
 
                     batch.setColor(Color.WHITE);
@@ -629,6 +683,9 @@ public class BattleRenderer {
                 sound.dispose();
             }
         }
-        healTexture.dispose();
+        if (buffSound != null) {
+            buffSound.dispose();
+        }
+
     }
 }

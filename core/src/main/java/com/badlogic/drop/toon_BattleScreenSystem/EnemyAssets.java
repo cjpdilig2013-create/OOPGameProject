@@ -66,15 +66,15 @@ public class EnemyAssets {
         setNearest(insecureSword);
 
         // MUSIC: long background music loops throughout its round.
-        garlicMusic = Gdx.audio.newMusic(Gdx.files.internal("music/garlic-battlemusic.mp3"));
-        tungMusic = Gdx.audio.newMusic(Gdx.files.internal("music/tung-battlemusic.mp3"));
-        calcMusic = Gdx.audio.newMusic(Gdx.files.internal("music/calc-battlemusic.mp3"));
-        bookMusic = Gdx.audio.newMusic(Gdx.files.internal("music/book-battlemusic.mp3"));
+        garlicMusic = Gdx.audio.newMusic(Gdx.files.internal("music/EnemyApproaching-TobyFox.mp3"));
+        tungMusic = Gdx.audio.newMusic(Gdx.files.internal("music/EnemyApproaching-TobyFox.mp3"));
+        calcMusic = Gdx.audio.newMusic(Gdx.files.internal("music/EnemyApproaching-TobyFox.mp3"));
+        bookMusic = Gdx.audio.newMusic(Gdx.files.internal("music/EnemyApproaching-TobyFox.mp3"));
         nekMusic = Gdx.audio.newMusic(Gdx.files.internal("music/nek-battlemusic.mp3"));
         Music[] tracks = {garlicMusic, tungMusic, calcMusic, bookMusic, nekMusic};
         for (Music track : tracks) {
             track.setLooping(true);
-            track.setVolume(0.35f);
+            track.setVolume(0.15f);
         }
 
         // SOUND EFFECTS: short sounds played only on an attack or defeat.

@@ -101,9 +101,6 @@ public class BattleScreen extends ScreenAdapter {
 
         specialSkillMove = new SpecialSkillMove();
 
-
-
-
         enemyMove = EnemyFactory.createEnemyMove(round);
         battleMessage = battleStatus("A wild Garlic Man appeared!");
     }
@@ -236,6 +233,7 @@ public class BattleScreen extends ScreenAdapter {
 
 
         if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_4)) {
+
             if (!waitingForNextRound && !allRoundsWon
                 && battle.getTurnManager().isPlayerTurn()
                 && !battle.isBattleOver()
@@ -243,9 +241,12 @@ public class BattleScreen extends ScreenAdapter {
                 ) {
 
                 String result = battle.playerTurn(specialSkillMove);
+                renderer.playBuffAnimation();
+
 
                 System.out.println(result);
                 battleMessage = battleStatus(result);
+
 
                 // ให้ศัตรูตอบโต้หลังใช้ Buff
                 if (enemy.isAlive() && !battle.isBattleOver()) {
@@ -253,6 +254,7 @@ public class BattleScreen extends ScreenAdapter {
                 }
             }
         }
+
 
         //Count down only when an animation is active
         if (animationTimer > 0f) {

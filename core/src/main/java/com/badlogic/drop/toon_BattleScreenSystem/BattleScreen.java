@@ -9,6 +9,8 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.ScreenAdapter;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.audio.Sound;
+import java.util.Random;
 
 // OOP Inheritance: BattleScreen extends ScreenAdapter.
 // This class controls the game's flow, not how each image is drawn.
@@ -36,6 +38,9 @@ public class BattleScreen extends ScreenAdapter {
     private float enemyFadeTimer = 0f;
     private static final float ENEMY_FADE_DURATION = 0.35f;
 
+    private Sound[] slashSounds;
+    private final Random random = new Random();
+
     // Reuse the existing battle system
     private PlayerCreature player;
     private Enemy enemy;
@@ -46,6 +51,12 @@ public class BattleScreen extends ScreenAdapter {
 
     @Override
     public void show() {
+
+        slashSounds = new Sound[] {
+            Gdx.audio.newSound(Gdx.files.internal("sounds/slashsound01.mp3")),
+            Gdx.audio.newSound(Gdx.files.internal("sounds/slashsound02.mp3")),
+            Gdx.audio.newSound(Gdx.files.internal("sounds/slashsound03.mp3"))
+        };
         // Create renderer + assets only once when this battle screen opens.
         renderer = new BattleRenderer();
         assets = new EnemyAssets();
@@ -58,7 +69,7 @@ public class BattleScreen extends ScreenAdapter {
         enemy = EnemyFactory.createEnemy(round);
         battle = new Battle(player, enemy);
         battle.startBattle();
-        splashHit = new DamageMove("Splash Hit", 10,
+        splashHit = new DamageMove("Splash Hit", 50,
             "Insecure Sword attacks Garlic Man!");
 
         enemyMove = EnemyFactory.createEnemyMove(round);
@@ -90,6 +101,8 @@ public class BattleScreen extends ScreenAdapter {
                 // Do not call playerTurn() again.
                 airSlashActive = true;
                 airSlashTimer = AIR_SLASH_DURATION;
+                int index = random.nextInt(slashSounds.length);
+                slashSounds[index].play();
 
                 showPlayerSword = false;
                 swordHideTimer = SWORD_HIDE_DURATION;
@@ -268,9 +281,22 @@ public class BattleScreen extends ScreenAdapter {
     // DISPOSE: each owner disposes only its own GPU/audio resources.
     @Override
     public void dispose() {
-        renderer.dispose();
-        assets.dispose();
+        if (slashSounds != null) {
+            for (Sound sound : slashSounds) {
+                sound.dispose();
+            }
+            slashSounds = null;
+        }
+
+        if (renderer != null) {
+            renderer.dispose();
+        }
+
+        if (assets != null) {
+            assets.dispose();
+        }
     }
+
 
     // ROUND TRANSITION
     // Enter moves to the NEXT opponent after a victory.
@@ -294,7 +320,7 @@ public class BattleScreen extends ScreenAdapter {
 
         // PLAYER MOVE: same placeholder Splash Hit for now.
         // ENEMY MOVE: chosen per opponent by EnemyFactory.
-        splashHit = new DamageMove("Splash Hit", 10,
+        splashHit = new DamageMove("Splash Hit", 50,
             "Insecure Sword attacks " + enemyDisplayName + "!");
 
 

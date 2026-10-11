@@ -10,17 +10,23 @@ public class DamageMove extends Move {
         super(name, power, description);
     }
 
+
     @Override
     public String use(Creature user, Creature target) {
-        int baseDamage = getPower() + user.getAttack() - target.getDefense();
+        int baseDamage = getPower()
+            + user.getAttack()
+            - target.getDefense();
 
-// Random value from -5 to +5
+        // Random value from -5 to +5
         int randomBonus = (int) (Math.random() * 11) - 5;
 
         int damage = baseDamage + randomBonus;
 
-// Damage cannot be lower than 1
+        // Damage cannot be lower than 0
         damage = Math.max(0, damage);
+
+        // Apply 50% attack buff if active
+        damage = user.getBuffedDamage(damage);
 
         target.takeDamage(damage);
 
@@ -30,10 +36,6 @@ public class DamageMove extends Move {
             + "\n" + target.getName() + " HP: "
             + target.getCurrentHp() + "/" + target.getMaxHp();
 
-        return lastResult;
-    }
-
-    public String getLastResult() {
         return lastResult;
     }
 }

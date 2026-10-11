@@ -88,4 +88,26 @@ public class Creature {
     public String toString() {
         return name + " Lv." + level + " [" + stats + "]";
     }
+
+
+    private int attackBuffStacks = 0;
+
+    public void activateAttackBuff() {
+        attackBuffStacks++;
+    }
+
+    public int getAttackBuffStacks() {
+        return attackBuffStacks;
+    }
+
+    public void removeAttackBuff() {
+        attackBuffStacks = 0;
+    }
+
+    public int getBuffedDamage(int baseDamage) {
+        double multiplier = 1.0 + (0.5 * attackBuffStacks);
+        return (int) Math.ceil(baseDamage * multiplier);
+    }
+
+
 }

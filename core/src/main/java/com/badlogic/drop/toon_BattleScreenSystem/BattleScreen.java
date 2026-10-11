@@ -13,6 +13,7 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.audio.Sound;
 import java.util.Random;
 import com.badlogic.drop.ot_MoveSkillsSystem.HealMove;
+import com.badlogic.drop.ot_MoveSkillsSystem.SpecialSkillMove;
 
 // OOP Inheritance: BattleScreen extends ScreenAdapter.
 // This class controls the game's flow, not how each image is drawn.
@@ -56,6 +57,7 @@ public class BattleScreen extends ScreenAdapter {
 
     private Move defendMove;
     private Move healMove;
+    private Move specialSkillMove;
 
 
 
@@ -96,6 +98,8 @@ public class BattleScreen extends ScreenAdapter {
             50,
             "Insecure Sword restores 50 HP!"
         );
+
+        specialSkillMove = new SpecialSkillMove();
 
 
 
@@ -230,9 +234,24 @@ public class BattleScreen extends ScreenAdapter {
         }
 
 
-        if (!waitingForNextRound && !allRoundsWon && Gdx.input.isKeyJustPressed(Input.Keys.NUM_4)) {
-            currentSprite = assets.getDead(round);
-            animationTimer = 0.0f;
+
+        if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_4)) {
+            if (!waitingForNextRound && !allRoundsWon
+                && battle.getTurnManager().isPlayerTurn()
+                && !battle.isBattleOver()
+                && player.isAlive()
+                ) {
+
+                String result = battle.playerTurn(specialSkillMove);
+
+                System.out.println(result);
+                battleMessage = battleStatus(result);
+
+                // ให้ศัตรูตอบโต้หลังใช้ Buff
+                if (enemy.isAlive() && !battle.isBattleOver()) {
+                    enemyTurnTimer = 1.5f;
+                }
+            }
         }
 
         //Count down only when an animation is active
@@ -396,6 +415,7 @@ public class BattleScreen extends ScreenAdapter {
     // against Garlic Man or Tung Tung Man remains lost against Calculator.
     // This also leaves room to add your healing mechanic later.
     private void startNextRound() {
+        player.removeAttackBuff();
         round++; // 1 -> 2 -> 3
         waitingForNextRound = false; // Allow normal attack input again.
         enemyDisplayName = EnemyFactory.getEnemyName(round);

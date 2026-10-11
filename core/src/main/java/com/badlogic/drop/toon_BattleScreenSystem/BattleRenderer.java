@@ -526,8 +526,8 @@ public class BattleRenderer {
     // DIALOGUE LOCATION: LibGDX coordinates start at bottom-left, so subtracting
     // the box height from screenHeight places the box at the TOP-left corner.
     private void updateDialoguePosition(int screenWidth, int screenHeight) {
-        float width = screenWidth * 0.47f;
-        float height = screenHeight * 0.19f;
+        float width = screenWidth * 0.50f;
+        float height = screenHeight * 0.30f;
         dialogueBox = new DialogueBox(20f, screenHeight - height - 20f, width, height);
     }
 
@@ -599,7 +599,7 @@ public class BattleRenderer {
             menuX + gap + 8f,
             menuY + gap + cellHeight / 2f + 5f);
 
-        font.draw(batch, "4. Attack 4",
+        font.draw(batch, "4. Buff",
             menuX + gap + cellWidth + gap + 8f,
             menuY + gap + cellHeight / 2f + 5f);
 

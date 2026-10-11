@@ -9,6 +9,9 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.drop.beach_CreatureStatsSystem.PlayerCreature;
 import com.badlogic.drop.beach_CreatureStatsSystem.Enemy;
+// Sword idle animation
+
+
 
 // BATTLE RENDERER: only draws the current battle. It does NOT calculate damage
 // or decide whose turn it is. This keeps graphics separate from game rules.
@@ -20,6 +23,23 @@ public class BattleRenderer {
     private final BitmapFont dialogueFont = new BitmapFont();
     private DialogueBox dialogueBox;
     private final Texture airSlashTexture;
+    private float swordFloatTimer = 0f;
+
+    private static final float FLOAT_RADIUS = 12f;
+    private static final float FLOAT_SPEED = 2f;
+
+    private float swordAnimationTimer = 0f;
+    private static final float SWORD_FLOAT_HEIGHT = 8f;
+    private static final float SWORD_FLOAT_SPEED = 2.5f;
+    private static final float SHADOW_FLOAT_SPEED = 2.0f;
+    private static final float SHADOW_FLOAT_HEIGHT = 12f;
+
+    // Shadow sword effect
+    private static final float SHADOW_ALPHA = 0.22f;
+    private static final float SHADOW_OFFSET_X = -5f;
+    private static final float SHADOW_OFFSET_Y = -4f;
+
+    private Texture shadowSword;
 
     public BattleRenderer() {
         dialogueFont.setColor(Color.BLACK);
@@ -27,6 +47,7 @@ public class BattleRenderer {
         airSlashTexture = new Texture(
             Gdx.files.internal("effect/airslash 01.png")
         );
+
 
         updateDialoguePosition(
             Gdx.graphics.getWidth(),
@@ -85,7 +106,13 @@ public class BattleRenderer {
         float hpBarHeight = Math.max(8f, screenHeight * 0.018f);
         float hpBarX = enemyX;
         float hpBarY = enemyY + enemySize + 10f;
+        swordFloatTimer += Gdx.graphics.getDeltaTime();
 
+        float floatX = (float) Math.cos(swordFloatTimer * FLOAT_SPEED)
+            * FLOAT_RADIUS;
+
+        float floatY = (float) Math.sin(swordFloatTimer * FLOAT_SPEED)
+            * FLOAT_RADIUS;
         batch.begin();
 
         //Draw background first
@@ -128,15 +155,87 @@ public class BattleRenderer {
         float playerY = (screenHeight - playerSize) / 6.5f;
 
 
-        if (showPlayer) {
-            batch.draw(
-                insecureSword,
-                playerX,
-                playerY,
-                playerWidth,
-                playerSize
-            );
-        }
+        //sword
+        swordAnimationTimer += Gdx.graphics.getDeltaTime();
+
+        float swordOffsetY =
+            (float) Math.sin(swordAnimationTimer * SWORD_FLOAT_SPEED)
+                * SWORD_FLOAT_HEIGHT;
+        // เงาแต่ละชั้นเคลื่อนไหวเหลื่อมจังหวะกัน
+        float shadowOffset1 =
+            (float) Math.sin(swordAnimationTimer * SHADOW_FLOAT_SPEED + 0.4f)
+                * SHADOW_FLOAT_HEIGHT * 0.25f;
+
+        float shadowOffset2 =
+            (float) Math.sin(swordAnimationTimer * SHADOW_FLOAT_SPEED + 0.8f)
+                * SHADOW_FLOAT_HEIGHT * 0.40f;
+
+        float shadowOffset3 =
+            (float) Math.sin(swordAnimationTimer * SHADOW_FLOAT_SPEED + 1.2f)
+                * SHADOW_FLOAT_HEIGHT * 0.55f;
+
+        float shadowOffset4 =
+            (float) Math.sin(swordAnimationTimer * SHADOW_FLOAT_SPEED + 1.6f)
+                * SHADOW_FLOAT_HEIGHT * 0.70f;
+
+
+
+            if (showPlayer) {
+                float swordY = playerY + swordOffsetY;
+
+                // เงาชั้นที่ 4: จางที่สุดและอยู่ห่างที่สุด
+                batch.setColor(0f, 0f, 0f, 0.08f);
+                batch.draw(
+                    insecureSword,
+                    playerX - 80f,
+                    swordY - 14f + shadowOffset4,
+                    playerWidth,
+                    playerSize
+                );
+
+                // เงาชั้นที่ 3
+                batch.setColor(0f, 0f, 0f, 0.12f);
+                batch.draw(
+                    insecureSword,
+                    playerX - 60f,
+                    swordY - 9f + shadowOffset3,
+                    playerWidth,
+                    playerSize
+                );
+
+                // เงาชั้นที่ 2
+                batch.setColor(0f, 0f, 0f, 0.17f);
+                batch.draw(
+                    insecureSword,
+                    playerX - 40f,
+                    swordY - 5f + shadowOffset2,
+                    playerWidth,
+                    playerSize
+                );
+
+                // เงาชั้นที่ 1: ใกล้ดาบหลักที่สุด
+                batch.setColor(0f, 0f, 0f, 0.22f);
+                batch.draw(
+                    insecureSword,
+                    playerX - 20f,
+                    swordY - 2f + shadowOffset1,
+                    playerWidth,
+                    playerSize
+                );
+
+                // ดาบหลัก
+                batch.setColor(Color.WHITE);
+                batch.draw(
+                    insecureSword,
+                    playerX,
+                    swordY,
+                    playerWidth,
+                    playerSize
+                );
+            }
+
+
+
 
 // จบการวาด Sprite ทั้งหมดก่อนใช้ ShapeRenderer
         batch.end();

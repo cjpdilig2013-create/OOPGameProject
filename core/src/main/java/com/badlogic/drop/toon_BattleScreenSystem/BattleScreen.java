@@ -34,7 +34,7 @@ public class BattleScreen extends ScreenAdapter {
 
     private float enemyTurnTimer = 0f;
     private float enemyFadeTimer = 0f;
-    private static final float ENEMY_FADE_DURATION = 0.25f;
+    private static final float ENEMY_FADE_DURATION = 0.35f;
 
     // Reuse the existing battle system
     private PlayerCreature player;

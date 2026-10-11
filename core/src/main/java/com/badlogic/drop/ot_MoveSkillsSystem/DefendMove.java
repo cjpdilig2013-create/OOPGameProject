@@ -1,4 +1,5 @@
 package com.badlogic.drop.ot_MoveSkillsSystem;
+import com.badlogic.drop.ot_MoveSkillsSystem.DefendMove;
 
 import com.badlogic.drop.beach_CreatureStatsSystem.Creature;
 

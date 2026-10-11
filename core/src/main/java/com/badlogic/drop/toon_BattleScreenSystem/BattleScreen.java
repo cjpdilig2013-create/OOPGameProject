@@ -1,5 +1,6 @@
 package com.badlogic.drop.toon_BattleScreenSystem;
 
+import com.badlogic.drop.ot_MoveSkillsSystem.DefendMove;
 import com.badlogic.drop.ot_MoveSkillsSystem.Move;
 import com.badlogic.drop.ot_MoveSkillsSystem.DamageMove;
 import com.badlogic.drop.cj_BattleSystem.Battle;
@@ -41,12 +42,19 @@ public class BattleScreen extends ScreenAdapter {
     private Sound[] slashSounds;
     private final Random random = new Random();
 
+    private float playerHitFlashTimer = 0f;
+    private static final float PLAYER_HIT_FLASH_DURATION = 0.20f;
+    private boolean showShield = false;
+
     // Reuse the existing battle system
     private PlayerCreature player;
     private Enemy enemy;
     private Battle battle;
     private Move splashHit;
     private Move enemyMove;
+
+    private Move defendMove;
+
 
 
     @Override
@@ -71,6 +79,13 @@ public class BattleScreen extends ScreenAdapter {
         battle.startBattle();
         splashHit = new DamageMove("Splash Hit", 50,
             "Insecure Sword attacks Garlic Man!");
+        defendMove = new DefendMove(
+            "Defend",
+            100,
+            "Insecure Sword braces for an incoming attack!"
+        );
+
+
 
         enemyMove = EnemyFactory.createEnemyMove(round);
         battleMessage = battleStatus("A wild Garlic Man appeared!");
@@ -152,10 +167,36 @@ public class BattleScreen extends ScreenAdapter {
             }
         }
 
-        if (!waitingForNextRound && !allRoundsWon && Gdx.input.isKeyJustPressed(Input.Keys.NUM_2)) {
-            currentSprite = assets.getAttack(round);
-            animationTimer = 0.4f;
+
+        if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_2)) {
+
+            // Defend only during the player's turn
+            if (!waitingForNextRound && !allRoundsWon
+                && battle.getTurnManager().isPlayerTurn()
+                && !battle.isBattleOver()) {
+
+                // Use the existing DefendMove through the Battle system
+                String result = battle.playerTurn(defendMove);
+
+                showShield = true;
+
+                System.out.println(result);
+                battleMessage = battleStatus("Insecure Sword used Defend!");
+
+                System.out.println(result);
+
+                // Show the defense message
+                battleMessage = battleStatus(
+                    "Insecure Sword used Defend!"
+                );
+
+                // Schedule the enemy's counterattack
+                if (enemy.isAlive() && !battle.isBattleOver()) {
+                    enemyTurnTimer = 1.5f;
+                }
+            }
         }
+
 
         if (!waitingForNextRound && !allRoundsWon && Gdx.input.isKeyJustPressed(Input.Keys.NUM_3)) {
             currentSprite = assets.getHurt(round);
@@ -197,8 +238,17 @@ public class BattleScreen extends ScreenAdapter {
                     && battle.getTurnManager().isEnemyTurn()
                     && !battle.isBattleOver()) {
 
-                    // Execute this enemy's move using CJ's battle system
+                    int previousPlayerHp = player.getCurrentHp();
+
+
+                    //enemyturn
                     String result = battle.enemyTurn(enemyMove);
+                    showShield = false;
+
+                    if (player.getCurrentHp() < previousPlayerHp) {
+                        playerHitFlashTimer = PLAYER_HIT_FLASH_DURATION;
+                    }
+
 
                     System.out.println(result);
                     assets.playEnemyAttack(round);
@@ -251,6 +301,14 @@ public class BattleScreen extends ScreenAdapter {
         if (enemyFadeTimer > 0f) {
             enemyAlpha = 0.55f;
         }
+        if (playerHitFlashTimer > 0f) {
+            playerHitFlashTimer -= delta;
+
+            if (playerHitFlashTimer < 0f) {
+                playerHitFlashTimer = 0f;
+            }
+        }
+        boolean playerHitFlash = playerHitFlashTimer > 0f;
 
 
 
@@ -265,10 +323,10 @@ public class BattleScreen extends ScreenAdapter {
             enemy,
             round,
             battleMessage,
-            showPlayerSword,
-            airSlashActive,
-            enemyAlpha
+            showPlayerSword, airSlashActive, enemyAlpha,
+            playerHitFlash, showShield
         );
+
 
     }
 

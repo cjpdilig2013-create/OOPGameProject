@@ -24,6 +24,7 @@ public class BattleRenderer {
     private DialogueBox dialogueBox;
     private final Texture airSlashTexture;
     private float swordFloatTimer = 0f;
+    private Texture shieldTexture;
 
     private static final float FLOAT_RADIUS = 12f;
     private static final float FLOAT_SPEED = 2f;
@@ -33,6 +34,7 @@ public class BattleRenderer {
     private static final float SWORD_FLOAT_SPEED = 2.5f;
     private static final float SHADOW_FLOAT_SPEED = 2.0f;
     private static final float SHADOW_FLOAT_HEIGHT = 12f;
+
 
     // Shadow sword effect
     private static final float SHADOW_ALPHA = 0.22f;
@@ -46,6 +48,9 @@ public class BattleRenderer {
 
         airSlashTexture = new Texture(
             Gdx.files.internal("effect/airslash 01.png")
+        );
+        shieldTexture = new Texture(
+            Gdx.files.internal("effect/shield8bit.png")
         );
 
 
@@ -61,231 +66,268 @@ public class BattleRenderer {
                        PlayerCreature player, Enemy enemy, int round,
                        String battleMessage,
                        boolean showPlayer, boolean showAirSlash,
-                       float enemyAlpha) {
-        Texture background = assets.getBackground(round);
-        Texture insecureSword = assets.getSword();
-        // RENDERING OVERVIEW
-        // 1) Clear old pixels; 2) scale/draw the active background;
-        // 3) draw both creatures; 4) draw both HP bars;
-        // 5) draw the persistent top-left dialogue and bottom-right attack menu.
-        // The order matters: later drawings appear on top of earlier drawings.
-        //Clear the previous frame
-        ScreenUtils.clear(0.85f, 0.92f, 0.80f, 1f);
+                       float enemyAlpha, boolean playerHitFlash,
+                       boolean showShield)
 
-        //Get the current window dimensions once
-        float screenWidth = Gdx.graphics.getWidth();
-        float screenHeight = Gdx.graphics.getHeight();
 
-        //Scale background without changing its aspect ratio
-        float scale = Math.max(
-            screenWidth / background.getWidth(),
-            screenHeight / background.getHeight()
-        );
+    {
+            Texture background = assets.getBackground(round);
+            Texture insecureSword = assets.getSword();
+            // RENDERING OVERVIEW
+            // 1) Clear old pixels; 2) scale/draw the active background;
+            // 3) draw both creatures; 4) draw both HP bars;
+            // 5) draw the persistent top-left dialogue and bottom-right attack menu.
+            // The order matters: later drawings appear on top of earlier drawings.
+            //Clear the previous frame
+            ScreenUtils.clear(0.85f, 0.92f, 0.80f, 1f);
 
-        float bgWidth = background.getWidth() * scale;
-        float bgHeight = background.getHeight() * scale;
+            //Get the current window dimensions once
+            float screenWidth = Gdx.graphics.getWidth();
+            float screenHeight = Gdx.graphics.getHeight();
 
-        //Center background; some edges may be cropped
-        float bgX = (screenWidth - bgWidth) / 2;
-        float bgY = (screenHeight - bgHeight) / 2;
-
-        // ENEMY SIZE AND POSITION
-        // Use a larger square for Tung Tung without touching or stretching the source PNG.
-        // Round 1 = 35%; Round 2 = 43%; Round 3 = 40% of window height.
-        // Changing this one multiplier makes Tung Tung bigger/smaller.
-        float enemyScale = (round == 2) ? 0.43f : (round == 3 ? 0.40f : 0.35f);
-        float enemySize = screenHeight * enemyScale;
-
-        // Keep each enemy in the top-right portion of the screen.
-        // The X expression centers the sprite around 70% of the screen width.
-        float enemyX = screenWidth * 0.70f - enemySize / 2f;
-        // Same vertical base for both rounds; the larger Tung Tung grows upward.
-        float enemyY = screenHeight * 0.48f;
-        // Enemy HP bar position
-        float hpBarWidth = enemySize;
-        float hpBarHeight = Math.max(8f, screenHeight * 0.018f);
-        float hpBarX = enemyX;
-        float hpBarY = enemyY + enemySize + 10f;
-        swordFloatTimer += Gdx.graphics.getDeltaTime();
-
-        float floatX = (float) Math.cos(swordFloatTimer * FLOAT_SPEED)
-            * FLOAT_RADIUS;
-
-        float floatY = (float) Math.sin(swordFloatTimer * FLOAT_SPEED)
-            * FLOAT_RADIUS;
-        batch.begin();
-
-        //Draw background first
-        batch.draw(background, bgX, bgY, bgWidth, bgHeight);
-
-        // ENEMY SPRITE: currentSprite changes between idle, attack, hurt and dead.
-        // The bigger enemySize value makes Tung Tung visibly larger in round 2.
-        // Draw the enemy with temporary transparency.
-        batch.setColor(1f, 1f, 1f, enemyAlpha);
-        batch.draw(currentSprite, enemyX, enemyY, enemySize, enemySize);
-        batch.setColor(Color.WHITE);
-
-// Draw Air Slash over the enemy during the player's attack.
-        if (showAirSlash) {
-            float slashHeight = enemySize * 1.15f;
-            float slashWidth = slashHeight
-                * airSlashTexture.getWidth()
-                / airSlashTexture.getHeight();
-
-            float slashX = enemyX + (enemySize - slashWidth) / 2f;
-            float slashY = enemyY + (enemySize - slashHeight) / 2f;
-
-            batch.draw(
-                airSlashTexture,
-                slashX,
-                slashY,
-                slashWidth,
-                slashHeight
+            //Scale background without changing its aspect ratio
+            float scale = Math.max(
+                screenWidth / background.getWidth(),
+                screenHeight / background.getHeight()
             );
-        }
 
-// PLAYER SPRITE: hide the player while Air Slash is active.
-        float playerSize = screenHeight * 0.55f;
+            float bgWidth = background.getWidth() * scale;
+            float bgHeight = background.getHeight() * scale;
 
-        float playerWidth = playerSize
-            * insecureSword.getWidth()
-            / insecureSword.getHeight();
+            //Center background; some edges may be cropped
+            float bgX = (screenWidth - bgWidth) / 2;
+            float bgY = (screenHeight - bgHeight) / 2;
 
-        float playerX = screenWidth * 0.10f;
-        float playerY = (screenHeight - playerSize) / 6.5f;
+            // ENEMY SIZE AND POSITION
+            // Use a larger square for Tung Tung without touching or stretching the source PNG.
+            // Round 1 = 35%; Round 2 = 43%; Round 3 = 40% of window height.
+            // Changing this one multiplier makes Tung Tung bigger/smaller.
+            float enemyScale = (round == 2) ? 0.43f : (round == 3 ? 0.40f : 0.35f);
+            float enemySize = screenHeight * enemyScale;
 
+            // Keep each enemy in the top-right portion of the screen.
+            // The X expression centers the sprite around 70% of the screen width.
+            float enemyX = screenWidth * 0.70f - enemySize / 2f;
+            // Same vertical base for both rounds; the larger Tung Tung grows upward.
+            float enemyY = screenHeight * 0.48f;
+            // Enemy HP bar position
+            float hpBarWidth = enemySize;
+            float hpBarHeight = Math.max(8f, screenHeight * 0.018f);
+            float hpBarX = enemyX;
+            float hpBarY = enemyY + enemySize + 10f;
+            swordFloatTimer += Gdx.graphics.getDeltaTime();
 
-        //sword
-        swordAnimationTimer += Gdx.graphics.getDeltaTime();
+            float floatX = (float) Math.cos(swordFloatTimer * FLOAT_SPEED)
+                * FLOAT_RADIUS;
 
-        float swordOffsetY =
-            (float) Math.sin(swordAnimationTimer * SWORD_FLOAT_SPEED)
-                * SWORD_FLOAT_HEIGHT;
-        // เงาแต่ละชั้นเคลื่อนไหวเหลื่อมจังหวะกัน
-        float shadowOffset1 =
-            (float) Math.sin(swordAnimationTimer * SHADOW_FLOAT_SPEED + 0.4f)
-                * SHADOW_FLOAT_HEIGHT * 0.25f;
+            float floatY = (float) Math.sin(swordFloatTimer * FLOAT_SPEED)
+                * FLOAT_RADIUS;
+            batch.begin();
 
-        float shadowOffset2 =
-            (float) Math.sin(swordAnimationTimer * SHADOW_FLOAT_SPEED + 0.8f)
-                * SHADOW_FLOAT_HEIGHT * 0.40f;
+            //Draw background first
+            batch.draw(background, bgX, bgY, bgWidth, bgHeight);
 
-        float shadowOffset3 =
-            (float) Math.sin(swordAnimationTimer * SHADOW_FLOAT_SPEED + 1.2f)
-                * SHADOW_FLOAT_HEIGHT * 0.55f;
+            // ENEMY SPRITE: currentSprite changes between idle, attack, hurt and dead.
+            // The bigger enemySize value makes Tung Tung visibly larger in round 2.
+            // Draw the enemy with temporary transparency.
+            batch.setColor(1f, 1f, 1f, enemyAlpha);
+            batch.draw(currentSprite, enemyX, enemyY, enemySize, enemySize);
+            batch.setColor(Color.WHITE);
 
-        float shadowOffset4 =
-            (float) Math.sin(swordAnimationTimer * SHADOW_FLOAT_SPEED + 1.6f)
-                * SHADOW_FLOAT_HEIGHT * 0.70f;
+    // Draw Air Slash over the enemy during the player's attack.
+            if (showAirSlash) {
+                float slashHeight = enemySize * 1.15f;
+                float slashWidth = slashHeight
+                    * airSlashTexture.getWidth()
+                    / airSlashTexture.getHeight();
 
+                float slashX = enemyX + (enemySize - slashWidth) / 2f;
+                float slashY = enemyY + (enemySize - slashHeight) / 2f;
 
-
-            if (showPlayer) {
-                float swordY = playerY + swordOffsetY;
-
-                // เงาชั้นที่ 4: จางที่สุดและอยู่ห่างที่สุด
-                batch.setColor(0f, 0f, 0f, 0.08f);
                 batch.draw(
-                    insecureSword,
-                    playerX - 80f,
-                    swordY - 14f + shadowOffset4,
-                    playerWidth,
-                    playerSize
-                );
-
-                // เงาชั้นที่ 3
-                batch.setColor(0f, 0f, 0f, 0.12f);
-                batch.draw(
-                    insecureSword,
-                    playerX - 60f,
-                    swordY - 9f + shadowOffset3,
-                    playerWidth,
-                    playerSize
-                );
-
-                // เงาชั้นที่ 2
-                batch.setColor(0f, 0f, 0f, 0.17f);
-                batch.draw(
-                    insecureSword,
-                    playerX - 40f,
-                    swordY - 5f + shadowOffset2,
-                    playerWidth,
-                    playerSize
-                );
-
-                // เงาชั้นที่ 1: ใกล้ดาบหลักที่สุด
-                batch.setColor(0f, 0f, 0f, 0.22f);
-                batch.draw(
-                    insecureSword,
-                    playerX - 20f,
-                    swordY - 2f + shadowOffset1,
-                    playerWidth,
-                    playerSize
-                );
-
-                // ดาบหลัก
-                batch.setColor(Color.WHITE);
-                batch.draw(
-                    insecureSword,
-                    playerX,
-                    swordY,
-                    playerWidth,
-                    playerSize
+                    airSlashTexture,
+                    slashX,
+                    slashY,
+                    slashWidth,
+                    slashHeight
                 );
             }
 
+    // PLAYER SPRITE: hide the player while Air Slash is active.
+            float playerSize = screenHeight * 0.55f;
+
+            float playerWidth = playerSize
+                * insecureSword.getWidth()
+                / insecureSword.getHeight();
+
+            float playerX = screenWidth * 0.10f;
+            float playerY = (screenHeight - playerSize) / 6.5f;
+
+
+            //sword
+            swordAnimationTimer += Gdx.graphics.getDeltaTime();
+
+            float swordOffsetY =
+                (float) Math.sin(swordAnimationTimer * SWORD_FLOAT_SPEED)
+                    * SWORD_FLOAT_HEIGHT;
+            // เงาแต่ละชั้นเคลื่อนไหวเหลื่อมจังหวะกัน
+            float shadowOffset1 =
+                (float) Math.sin(swordAnimationTimer * SHADOW_FLOAT_SPEED + 0.4f)
+                    * SHADOW_FLOAT_HEIGHT * 0.25f;
+
+            float shadowOffset2 =
+                (float) Math.sin(swordAnimationTimer * SHADOW_FLOAT_SPEED + 0.8f)
+                    * SHADOW_FLOAT_HEIGHT * 0.40f;
+
+            float shadowOffset3 =
+                (float) Math.sin(swordAnimationTimer * SHADOW_FLOAT_SPEED + 1.2f)
+                    * SHADOW_FLOAT_HEIGHT * 0.55f;
+
+            float shadowOffset4 =
+                (float) Math.sin(swordAnimationTimer * SHADOW_FLOAT_SPEED + 1.6f)
+                    * SHADOW_FLOAT_HEIGHT * 0.70f;
 
 
 
-// จบการวาด Sprite ทั้งหมดก่อนใช้ ShapeRenderer
-        batch.end();
+                if (showPlayer) {
+                    float swordY = playerY + swordOffsetY;
 
-// ตั้งค่าพิกัดของ ShapeRenderer ให้ตรงกับ SpriteBatch
-        shapeRenderer.setProjectionMatrix(batch.getProjectionMatrix());
 
-// วาด Enemy HP bar
-        drawHpBar(
-            hpBarX,
-            hpBarY,
-            hpBarWidth,
-            hpBarHeight,
-            enemy.getCurrentHp(),
-            enemy.getMaxHp()
-        );
+                    // เงาชั้นที่ 4: จางที่สุดและอยู่ห่างที่สุด
+                    batch.setColor(0f, 0f, 0f, 0.08f);
+                    batch.draw(
+                        insecureSword,
+                        playerX - 80f,
+                        swordY - 14f + shadowOffset4,
+                        playerWidth,
+                        playerSize
+                    );
 
-// วาด Player HP bar
-        float playerHpX = playerX;
-        float playerHpY = playerY + playerSize + 10f;
+                    // เงาชั้นที่ 3
+                    batch.setColor(0f, 0f, 0f, 0.12f);
+                    batch.draw(
+                        insecureSword,
+                        playerX - 60f,
+                        swordY - 9f + shadowOffset3,
+                        playerWidth,
+                        playerSize
+                    );
 
-        drawHpBar(
-            playerHpX,
-            playerHpY,
-            playerWidth,
-            hpBarHeight,
-            player.getCurrentHp(),
-            player.getMaxHp()
-        );
+                    // เงาชั้นที่ 2
+                    batch.setColor(0f, 0f, 0f, 0.17f);
+                    batch.draw(
+                        insecureSword,
+                        playerX - 40f,
+                        swordY - 5f + shadowOffset2,
+                        playerWidth,
+                        playerSize
+                    );
 
-        dialogueBox.setText(battleMessage);
-        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
-        dialogueBox.drawShapes(shapeRenderer);
-        shapeRenderer.end();
+                    // เงาชั้นที่ 1: ใกล้ดาบหลักที่สุด
+                    batch.setColor(0f, 0f, 0f, 0.22f);
+                    batch.draw(
+                        insecureSword,
+                        playerX - 20f,
+                        swordY - 2f + shadowOffset1,
+                        playerWidth,
+                        playerSize
+                    );
 
-        // Draw dialogue text
-        batch.begin();
+                    // ดาบหลัก: กระพริบสีขาวเมื่อโดนโจมตี
+                    if (playerHitFlash) {
+                        batch.setColor(1f, 1f, 1f, 0.55f);
+                    } else {
+                        batch.setColor(Color.WHITE);
+                    }
 
-        float dialogueScale = screenHeight / 720f * 2.0f;
-        dialogueScale = Math.max(1.0f, Math.min(dialogueScale, 3.0f));
+                    batch.draw(
+                        insecureSword,
+                        playerX,
+                        swordY,
+                        playerWidth,
+                        playerSize
+                    );
 
-        dialogueFont.getData().setScale(dialogueScale);
-        dialogueBox.drawText(batch, dialogueFont);
+                    batch.setColor(Color.WHITE);
+                }
 
-        batch.end();
 
-        // Draw HP bars
 
-        // Draw attack menu last
-        drawAttackMenu();
+
+    // จบการวาด Sprite ทั้งหมดก่อนใช้ ShapeRenderer
+            batch.end();
+
+    // ตั้งค่าพิกัดของ ShapeRenderer ให้ตรงกับ SpriteBatch
+            shapeRenderer.setProjectionMatrix(batch.getProjectionMatrix());
+
+        if (showShield && showPlayer) {
+            float shieldSwordOffsetY =
+                (float) Math.sin(swordAnimationTimer * SWORD_FLOAT_SPEED)
+                    * SWORD_FLOAT_HEIGHT;
+
+            float shieldSwordY = playerY + shieldSwordOffsetY;
+
+            float shieldSize = playerSize * 0.30f;
+            float shieldX = playerX + playerSize * 0.55f;
+            float shieldY = shieldSwordY + playerSize * 0.40f;
+
+            batch.begin();
+            batch.setColor(Color.WHITE);
+
+            batch.draw(
+                shieldTexture,
+                shieldX,
+                shieldY,
+                shieldSize,
+                shieldSize
+            );
+
+            batch.end();
+        }
+
+    // วาด Enemy HP bar
+            drawHpBar(
+                hpBarX,
+                hpBarY,
+                hpBarWidth,
+                hpBarHeight,
+                enemy.getCurrentHp(),
+                enemy.getMaxHp()
+            );
+
+    // วาด Player HP bar
+            float playerHpX = playerX;
+            float playerHpY = playerY + playerSize + 10f;
+
+            drawHpBar(
+                playerHpX,
+                playerHpY,
+                playerWidth,
+                hpBarHeight,
+                player.getCurrentHp(),
+                player.getMaxHp()
+            );
+
+            dialogueBox.setText(battleMessage);
+            shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+            dialogueBox.drawShapes(shapeRenderer);
+            shapeRenderer.end();
+
+            // Draw dialogue text
+            batch.begin();
+
+            float dialogueScale = screenHeight / 720f * 2.0f;
+            dialogueScale = Math.max(1.0f, Math.min(dialogueScale, 3.0f));
+
+            dialogueFont.getData().setScale(dialogueScale);
+            dialogueBox.drawText(batch, dialogueFont);
+
+            batch.end();
+
+            // Draw HP bars
+
+            // Draw attack menu last
+            drawAttackMenu();
 
 
     }
@@ -445,7 +487,7 @@ public class BattleRenderer {
             menuX + gap + 8f,
             menuY + gap + cellHeight + gap + cellHeight / 2f + 5f);
 
-        font.draw(batch, "2. Attack 2",
+        font.draw(batch, "2. Defend",
             menuX + gap + cellWidth + gap + 8f,
             menuY + gap + cellHeight + gap + cellHeight / 2f + 5f);
 
@@ -461,6 +503,9 @@ public class BattleRenderer {
     }
 
     public void dispose() {
+        if (shieldTexture != null) {
+            shieldTexture.dispose();
+        }
         shapeRenderer.dispose();
         font.dispose();
         dialogueFont.dispose();

@@ -20,7 +20,7 @@ public class DamageMove extends Move {
         int damage = baseDamage + randomBonus;
 
 // Damage cannot be lower than 1
-        damage = Math.max(1, damage);
+        damage = Math.max(0, damage);
 
         target.takeDamage(damage);
 

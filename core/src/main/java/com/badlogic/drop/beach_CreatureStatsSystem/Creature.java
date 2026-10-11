@@ -32,7 +32,7 @@ public class Creature {
      */
     public int takeDamage(int amount) {
         if (amount <= 0) return 0;
-        int finalDamage = Math.max(1, amount - defendReduction);
+        int finalDamage = Math.max(0, amount - defendReduction);
         int before = stats.getHp();
         stats.setHp(before - finalDamage);
         clearDefendReduction();

@@ -11,6 +11,9 @@ import com.badlogic.drop.beach_CreatureStatsSystem.PlayerCreature;
 import com.badlogic.drop.beach_CreatureStatsSystem.Enemy;
 import com.badlogic.gdx.audio.Sound;
 import java.util.Random;
+import com.badlogic.gdx.graphics.g2d.Animation;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
+
 // Sword idle animation
 
 
@@ -44,8 +47,19 @@ public class BattleRenderer {
     private static final float SHADOW_OFFSET_X = -5f;
     private static final float SHADOW_OFFSET_Y = -4f;
     //shield
+    // Shield / Block
     private final Sound[] blockSounds = new Sound[3];
     private final Random random = new Random();
+
+    // Heal
+    private final Sound[] healSounds = new Sound[4];
+
+    //heal animetion
+    private Texture healTexture;
+    private Animation<TextureRegion> healAnimation;
+    private float healAnimationTime = 0f;
+    private boolean playingHealAnimation = false;
+
 
     private Texture shadowSword;
 
@@ -71,15 +85,48 @@ public class BattleRenderer {
             Gdx.files.internal("sounds/block04.mp3")
         );
 
+       healSounds[0] = Gdx.audio.newSound(
+            Gdx.files.internal("sounds/heal01.mp3")
+        );
+        healSounds[1] = Gdx.audio.newSound(
+            Gdx.files.internal("sounds/heal02.mp3")
+        );
+        healSounds[2] = Gdx.audio.newSound(
+            Gdx.files.internal("sounds/heal03.mp3")
+        );
+        healSounds[3] = Gdx.audio.newSound(
+            Gdx.files.internal("sounds/heal04.mp3")
+        );
+        healTexture = new Texture(
+            Gdx.files.internal("effect/heal_spritesheet.png")
+        );
 
+        TextureRegion[][] frames = TextureRegion.split(
+            healTexture,
+            200,
+            200
+        );
 
+        TextureRegion[] healFrames = new TextureRegion[8];
 
+        for (int i = 0; i < 8; i++) {
+            healFrames[i] = frames[0][i];
+        }
+
+        healAnimation = new Animation<>(0.05f, healFrames);
 
 
         updateDialoguePosition(
             Gdx.graphics.getWidth(),
             Gdx.graphics.getHeight()
         );
+    }
+    public void playHealSound() {
+        int index = random.nextInt(healSounds.length);
+
+        if (healSounds[index] != null) {
+            healSounds[index].play(0.8f);
+        }
     }
     public void playBlockSound() {
         int index = random.nextInt(blockSounds.length);
@@ -90,6 +137,10 @@ public class BattleRenderer {
             shieldSound.play(0.8f);
         }
     }
+    public void playHealAnimation() {
+        healAnimationTime = 0f;
+        playingHealAnimation = true;
+    }
 
     // ONE rendering entry point shared by Garlic Man and Tung Tung Man.
     // The screen supplies current textures, HP, round number, and message.
@@ -98,10 +149,7 @@ public class BattleRenderer {
                        String battleMessage,
                        boolean showPlayer, boolean showAirSlash,
                        float enemyAlpha, boolean playerHitFlash,
-                       boolean showShield)
-
-
-    {
+                       boolean showShield) {
             Texture background = assets.getBackground(round);
             Texture insecureSword = assets.getSword();
             // RENDERING OVERVIEW
@@ -228,12 +276,8 @@ public class BattleRenderer {
                 (float) Math.sin(swordAnimationTimer * SHADOW_FLOAT_SPEED + 1.6f)
                     * SHADOW_FLOAT_HEIGHT * 0.70f;
 
-
-
                 if (showPlayer) {
                     float swordY = playerY + swordOffsetY;
-
-
                     // เงาชั้นที่ 4: จางที่สุดและอยู่ห่างที่สุด
                     batch.setColor(0f, 0f, 0f, 0.08f);
                     batch.draw(
@@ -243,7 +287,6 @@ public class BattleRenderer {
                         playerWidth,
                         playerSize
                     );
-
                     // เงาชั้นที่ 3
                     batch.setColor(0f, 0f, 0f, 0.12f);
                     batch.draw(
@@ -253,7 +296,6 @@ public class BattleRenderer {
                         playerWidth,
                         playerSize
                     );
-
                     // เงาชั้นที่ 2
                     batch.setColor(0f, 0f, 0f, 0.17f);
                     batch.draw(
@@ -263,7 +305,6 @@ public class BattleRenderer {
                         playerWidth,
                         playerSize
                     );
-
                     // เงาชั้นที่ 1: ใกล้ดาบหลักที่สุด
                     batch.setColor(0f, 0f, 0f, 0.22f);
                     batch.draw(
@@ -291,8 +332,30 @@ public class BattleRenderer {
 
                     batch.setColor(Color.WHITE);
                 }
+        if (playingHealAnimation) {
+            healAnimationTime += Gdx.graphics.getDeltaTime();
 
+            if (healAnimation.isAnimationFinished(healAnimationTime)) {
+                playingHealAnimation = false;
+            } else {
+                TextureRegion frame =
+                    healAnimation.getKeyFrame(healAnimationTime);
 
+                float effectSize = 350f;
+
+                // ตำแหน่งกึ่งกลางของตัวละคร
+                float effectX = playerX + playerWidth / 2f - effectSize / 2f;
+                float effectY = playerY + playerSize  -400f;
+
+                batch.draw(
+                    frame,
+                    effectX,
+                    effectY,
+                    effectSize,
+                    effectSize
+                );
+            }
+        }
 
 
     // จบการวาด Sprite ทั้งหมดก่อนใช้ ShapeRenderer
@@ -561,7 +624,11 @@ public class BattleRenderer {
         batch.dispose();
         airSlashTexture.dispose();
 
-
-
+        for (Sound sound : healSounds) {
+            if (sound != null) {
+                sound.dispose();
+            }
+        }
+        healTexture.dispose();
     }
 }

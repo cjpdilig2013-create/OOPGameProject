@@ -217,8 +217,9 @@ public class BattleScreen extends ScreenAdapter {
                 && player.isAlive()) {
 
                 String result = battle.playerTurn(healMove);
-
+                renderer.playHealSound();
                 System.out.println(result);
+                renderer.playHealAnimation();
 
                 battleMessage = battleStatus(result);
 

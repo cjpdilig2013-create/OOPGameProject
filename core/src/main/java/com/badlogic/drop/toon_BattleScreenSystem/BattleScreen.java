@@ -151,7 +151,7 @@ public class BattleScreen extends ScreenAdapter {
                     enemyTurnTimer = 0f;
                     // ROUND PROGRESSION: let the player read the victory message.
                     // We do NOT heal the sword; its current HP carries forward.
-                    if (round < 3) {
+                    if (round < 5) {
                         waitingForNextRound = true;
                         String nextName = EnemyFactory.getEnemyName(round + 1);
                         battleMessage = battleStatus("YOU WIN! " + enemyDisplayName
@@ -160,7 +160,7 @@ public class BattleScreen extends ScreenAdapter {
                         // For this prototype, Calculator is the final opponent.
                         allRoundsWon = true;
                         battleMessage = battleStatus(
-                            "YOU WIN! Calculator defeated!\nPrototype complete!");
+                            "YOU WIN! Professor Nek defeated!\nPrototype complete!");
                     }
                 }
 

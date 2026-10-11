@@ -102,7 +102,17 @@ public class BattleRenderer {
             // Use a larger square for Tung Tung without touching or stretching the source PNG.
             // Round 1 = 35%; Round 2 = 43%; Round 3 = 40% of window height.
             // Changing this one multiplier makes Tung Tung bigger/smaller.
-            float enemyScale = (round == 2) ? 0.43f : (round == 3 ? 0.40f : 0.35f);
+            // Set sprite sizes for all five enemies
+            float enemyScale;
+
+        switch (round) {
+            case 1: enemyScale = 0.35f; break;
+            case 2: enemyScale = 0.43f; break;
+            case 3: enemyScale = 0.40f; break;
+            case 4: enemyScale = 0.42f; break;
+            case 5: enemyScale = 0.46f; break;
+            default: enemyScale = 0.35f;
+        }
             float enemySize = screenHeight * enemyScale;
 
             // Keep each enemy in the top-right portion of the screen.

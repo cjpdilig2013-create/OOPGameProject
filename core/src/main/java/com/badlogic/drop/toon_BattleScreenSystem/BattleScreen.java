@@ -22,16 +22,27 @@ public class BattleScreen extends ScreenAdapter {
     private boolean allRoundsWon = false;
     private String enemyDisplayName = "Garlic Man";
     private String battleMessage = "A wild Garlic Man appeared!";
-    private float animationTimer = 0f;
-    private float enemyTurnTimer = 0f;
 
-    // Reuse CJ's existing battle system for damage, HP, and turns.
+    private float animationTimer = 0f;
+
+    private boolean airSlashActive = false;
+    private float airSlashTimer = 0f;
+    private static final float AIR_SLASH_DURATION = 0.30f;
+    private boolean showPlayerSword = true;
+    private float swordHideTimer = 0f;
+    private static final float SWORD_HIDE_DURATION = 0.35f;
+
+    private float enemyTurnTimer = 0f;
+    private float enemyFadeTimer = 0f;
+    private static final float ENEMY_FADE_DURATION = 0.25f;
+
+    // Reuse the existing battle system
     private PlayerCreature player;
     private Enemy enemy;
     private Battle battle;
-    // POLYMORPHISM: both attacks use the shared Move interface.
     private Move splashHit;
     private Move enemyMove;
+
 
     @Override
     public void show() {
@@ -49,6 +60,7 @@ public class BattleScreen extends ScreenAdapter {
         battle.startBattle();
         splashHit = new DamageMove("Splash Hit", 10,
             "Insecure Sword attacks Garlic Man!");
+
         enemyMove = EnemyFactory.createEnemyMove(round);
         battleMessage = battleStatus("A wild Garlic Man appeared!");
     }
@@ -73,6 +85,15 @@ public class BattleScreen extends ScreenAdapter {
                 // Execute the attack using CJ's Battle System
                 String result = battle.playerTurn(splashHit);
 
+
+                // Start the visual effect only.
+                // Do not call playerTurn() again.
+                airSlashActive = true;
+                airSlashTimer = AIR_SLASH_DURATION;
+
+                showPlayerSword = false;
+                swordHideTimer = SWORD_HIDE_DURATION;
+
                 // Show the attack result in IntelliJ's console
                 System.out.println(result);
                 battleMessage = battleStatus("Insecure Sword used Splash Hit!");
@@ -91,6 +112,7 @@ public class BattleScreen extends ScreenAdapter {
 
                     // Schedule the enemy counterattack
                     enemyTurnTimer = 1.5f; // Wait 1.5 seconds before the enemy counters
+                    enemyFadeTimer = ENEMY_FADE_DURATION;
 
                 } else {
                     // The enemy is defeated, so no counterattack occurs
@@ -187,12 +209,54 @@ public class BattleScreen extends ScreenAdapter {
                 }
             }
         }
+        if (airSlashActive) {
+            airSlashTimer -= delta;
+
+            if (airSlashTimer <= 0f) {
+                airSlashActive = false;
+                airSlashTimer = 0f;
+            }
+        }
+        if (!showPlayerSword) {
+            swordHideTimer -= delta;
+
+            if (swordHideTimer <= 0f) {
+                showPlayerSword = true;
+                swordHideTimer = 0f;
+            }
+        }
+
+        if (enemyFadeTimer > 0f) {
+            enemyFadeTimer -= delta;
+
+            if (enemyFadeTimer < 0f) {
+                enemyFadeTimer = 0f;
+            }
+        }
+        float enemyAlpha = 1f;
+
+        if (enemyFadeTimer > 0f) {
+            enemyAlpha = 0.55f;
+        }
+
+
 
 
 
         // RENDERING: hand all graphics to the renderer, leaving BattleScreen
         // responsible only for inputs, turns, and round progression.
-        renderer.render(assets, currentSprite, player, enemy, round, battleMessage);
+        renderer.render(
+            assets,
+            currentSprite,
+            player,
+            enemy,
+            round,
+            battleMessage,
+            showPlayerSword,
+            airSlashActive,
+            enemyAlpha
+        );
+
     }
 
     // RESIZE: tell renderer to adjust its projection + top-left dialogue position.
@@ -232,12 +296,15 @@ public class BattleScreen extends ScreenAdapter {
         // ENEMY MOVE: chosen per opponent by EnemyFactory.
         splashHit = new DamageMove("Splash Hit", 10,
             "Insecure Sword attacks " + enemyDisplayName + "!");
+
+
         enemyMove = EnemyFactory.createEnemyMove(round);
 
         // Change the music and show the new round's opening message.
         assets.playMusic(round);
         battleMessage = battleStatus("A wild " + enemyDisplayName + " appeared!");
     }
+
 
     // DIALOGUE TEXT: show the last action and both HP totals.
     // The message stays visible until the next battle action.

@@ -19,17 +19,28 @@ public class BattleRenderer {
     private final BitmapFont font = new BitmapFont();
     private final BitmapFont dialogueFont = new BitmapFont();
     private DialogueBox dialogueBox;
+    private final Texture airSlashTexture;
 
     public BattleRenderer() {
         dialogueFont.setColor(Color.BLACK);
-        updateDialoguePosition(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+
+        airSlashTexture = new Texture(
+            Gdx.files.internal("effect/airslash 01.png")
+        );
+
+        updateDialoguePosition(
+            Gdx.graphics.getWidth(),
+            Gdx.graphics.getHeight()
+        );
     }
 
     // ONE rendering entry point shared by Garlic Man and Tung Tung Man.
     // The screen supplies current textures, HP, round number, and message.
     public void render(EnemyAssets assets, Texture currentSprite,
                        PlayerCreature player, Enemy enemy, int round,
-                       String battleMessage) {
+                       String battleMessage,
+                       boolean showPlayer, boolean showAirSlash,
+                       float enemyAlpha) {
         Texture background = assets.getBackground(round);
         Texture insecureSword = assets.getSword();
         // RENDERING OVERVIEW
@@ -69,6 +80,11 @@ public class BattleRenderer {
         float enemyX = screenWidth * 0.70f - enemySize / 2f;
         // Same vertical base for both rounds; the larger Tung Tung grows upward.
         float enemyY = screenHeight * 0.48f;
+        // Enemy HP bar position
+        float hpBarWidth = enemySize;
+        float hpBarHeight = Math.max(8f, screenHeight * 0.018f);
+        float hpBarX = enemyX;
+        float hpBarY = enemyY + enemySize + 10f;
 
         batch.begin();
 
@@ -77,9 +93,31 @@ public class BattleRenderer {
 
         // ENEMY SPRITE: currentSprite changes between idle, attack, hurt and dead.
         // The bigger enemySize value makes Tung Tung visibly larger in round 2.
+        // Draw the enemy with temporary transparency.
+        batch.setColor(1f, 1f, 1f, enemyAlpha);
         batch.draw(currentSprite, enemyX, enemyY, enemySize, enemySize);
+        batch.setColor(Color.WHITE);
 
-        // PLAYER SPRITE: the Insecure Sword remains the same in both rounds.
+// Draw Air Slash over the enemy during the player's attack.
+        if (showAirSlash) {
+            float slashHeight = enemySize * 1.15f;
+            float slashWidth = slashHeight
+                * airSlashTexture.getWidth()
+                / airSlashTexture.getHeight();
+
+            float slashX = enemyX + (enemySize - slashWidth) / 2f;
+            float slashY = enemyY + (enemySize - slashHeight) / 2f;
+
+            batch.draw(
+                airSlashTexture,
+                slashX,
+                slashY,
+                slashWidth,
+                slashHeight
+            );
+        }
+
+// PLAYER SPRITE: hide the player while Air Slash is active.
         float playerSize = screenHeight * 0.55f;
 
         float playerWidth = playerSize
@@ -89,27 +127,24 @@ public class BattleRenderer {
         float playerX = screenWidth * 0.10f;
         float playerY = (screenHeight - playerSize) / 6.5f;
 
-        batch.draw(
-            insecureSword,
-            playerX,
-            playerY,
-            playerWidth,
-            playerSize
-        );
+
+        if (showPlayer) {
+            batch.draw(
+                insecureSword,
+                playerX,
+                playerY,
+                playerWidth,
+                playerSize
+            );
+        }
+
+// จบการวาด Sprite ทั้งหมดก่อนใช้ ShapeRenderer
         batch.end();
 
-        // Match ShapeRenderer's coordinates to SpriteBatch
+// ตั้งค่าพิกัดของ ShapeRenderer ให้ตรงกับ SpriteBatch
         shapeRenderer.setProjectionMatrix(batch.getProjectionMatrix());
 
-        // ENEMY HP BAR: position directly above whichever enemy is active.
-        // Its width tracks enemySize, so the bar grows with Tung Tung.
-        float hpBarWidth = enemySize;
-        float hpBarHeight = Math.max(8f, screenHeight * 0.018f);
-
-        float hpBarX = enemyX;
-        float hpBarY = enemyY + enemySize + 10f;
-
-// Draw Garlic Man's current HP
+// วาด Enemy HP bar
         drawHpBar(
             hpBarX,
             hpBarY,
@@ -118,60 +153,123 @@ public class BattleRenderer {
             enemy.getCurrentHp(),
             enemy.getMaxHp()
         );
-        // Display the player's remaining HP; enemyTurn() updates this through Battle.
+
+// วาด Player HP bar
         float playerHpX = playerX;
         float playerHpY = playerY + playerSize + 10f;
-        drawHpBar(playerHpX, playerHpY, playerWidth, hpBarHeight,
-            player.getCurrentHp(), player.getMaxHp());
 
-        // Keep the latest message and both remaining HP values visible until the next action.
+        drawHpBar(
+            playerHpX,
+            playerHpY,
+            playerWidth,
+            hpBarHeight,
+            player.getCurrentHp(),
+            player.getMaxHp()
+        );
+
         dialogueBox.setText(battleMessage);
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
         dialogueBox.drawShapes(shapeRenderer);
         shapeRenderer.end();
 
+        // Draw dialogue text
         batch.begin();
-        // DIALOGUE FONT: make the battle dialogue noticeably larger.
-        // At 720p the font is 2.5x the default size; on larger windows it grows
-        // slightly more (up to 3.0x). The dialogue box itself is unchanged.
-        // The attack menu uses a separate font, so this will not resize the buttons.
-        float dialogueScale = Math.max(2f, Math.min(2.5f, screenHeight / 720f * 2.5f));
+
+        float dialogueScale = screenHeight / 720f * 2.0f;
+        dialogueScale = Math.max(1.0f, Math.min(dialogueScale, 3.0f));
+
         dialogueFont.getData().setScale(dialogueScale);
         dialogueBox.drawText(batch, dialogueFont);
+
         batch.end();
 
+        // Draw HP bars
+
+        // Draw attack menu last
         drawAttackMenu();
+
+
     }
+
 
     private void drawHpBar(float x, float y,
                            float width, float height,
                            int currentHp, int maxHp) {
 
-        // Calculate how full the HP bar should be
-        float hpPercent = Math.max(0f, Math.min(1f,
-            (float) currentHp / maxHp
-        ));
-
-        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
-
-        // Draw the dark background of the HP bar
-        shapeRenderer.setColor(Color.DARK_GRAY);
-        shapeRenderer.rect(x, y, width, height);
-
-        // Change the HP bar color depending on remaining HP
-        if (hpPercent > 0.5f) {
-            shapeRenderer.setColor(Color.GREEN);
-        } else if (hpPercent > 0.2f) {
-            shapeRenderer.setColor(Color.YELLOW);
-        } else {
-            shapeRenderer.setColor(Color.RED);
+        if (maxHp <= 0 || width <= 0 || height <= 0) {
+            return;
         }
 
-        // Draw the remaining HP as a filled rectangle
-        shapeRenderer.rect(x, y, width * hpPercent, height);
+        // Clamp HP to a valid range
+        int hp = Math.max(0, Math.min(currentHp, maxHp));
+
+        // Each slot represents up to 10 HP
+        int slotCount = (maxHp + 9) / 10;
+        float gap = 0f;
+        float slotWidth =
+            (width - gap * (slotCount - 1)) / slotCount;
+
+        float hpPercent = (float) hp / maxHp;
+
+        // Choose the color based on remaining HP
+        Color hpColor;
+        if (hpPercent > 0.5f) {
+            hpColor = Color.GREEN;
+        } else if (hpPercent > 0.2f) {
+            hpColor = Color.YELLOW;
+        } else {
+            hpColor = Color.RED;
+        }
+
+        // Draw the background and the filled HP inside each slot
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+
+        for (int i = 0; i < slotCount; i++) {
+            float slotX = x + i * (slotWidth + gap);
+
+            // Dark background for an empty slot
+            shapeRenderer.setColor(Color.DARK_GRAY);
+            shapeRenderer.rect(slotX, y, slotWidth, height);
+
+            // HP remaining in this slot
+            int slotHp = Math.max(
+                0,
+                Math.min(10, hp - i * 10)
+            );
+
+            // The final slot may represent fewer than 10 HP
+            int slotCapacity = Math.min(10, maxHp - i * 10);
+
+            if (slotHp > 0 && slotCapacity > 0) {
+                float inset = Math.min(1.5f, height * 0.08f);
+                float fillWidth =
+                    (slotWidth - inset * 2f)
+                        * slotHp / slotCapacity;
+
+                shapeRenderer.setColor(hpColor);
+                shapeRenderer.rect(
+                    slotX + inset,
+                    y + inset,
+                    fillWidth,
+                    height - inset * 2f
+                );
+            }
+        }
+
+        shapeRenderer.end();
+
+        // Draw a black outline around every slot
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+        shapeRenderer.setColor(Color.BLACK);
+
+        for (int i = 0; i < slotCount; i++) {
+            float slotX = x + i * (slotWidth + gap);
+            shapeRenderer.rect(slotX, y, slotWidth, height);
+        }
 
         shapeRenderer.end();
     }
+
 
 
     //RESIZING: Keep drawing coordinates matched to the window.
@@ -268,5 +366,6 @@ public class BattleRenderer {
         font.dispose();
         dialogueFont.dispose();
         batch.dispose();
+        airSlashTexture.dispose();
     }
 }

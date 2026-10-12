@@ -49,7 +49,7 @@ public class BattleScreen extends ScreenAdapter {
     private Sound debuffSound;
 
     private float playerHitFlashTimer = 0f;
-    private static final float PLAYER_HIT_FLASH_DURATION = 0.20f;
+    private static final float PLAYER_HIT_FLASH_DURATION = 0.5f;
     private boolean showShield = false;
 
     private float enemyBuffScale = 1.0f;

@@ -28,6 +28,7 @@ public class BattleRenderer {
     private final BitmapFont dialogueFont = new BitmapFont();
     private DialogueBox dialogueBox;
     private final Texture airSlashTexture;
+    private Texture playerHitTexture;
     private float swordFloatTimer = 0f;
     private Texture shieldTexture;
     private com.badlogic.gdx.audio.Sound shieldSound;
@@ -71,7 +72,7 @@ public class BattleRenderer {
     private float enemyBuffScale = 1.0f;
     private float enemyRedFlashTimer = 0f;
     private static final float ENEMY_BUFF_DURATION = 0.5f;
-     //choicce screen
+    //choicce screen
     private String currentMenu = "MAIN_MENU";
     private int selectedChoice = 0;
 
@@ -100,7 +101,7 @@ public class BattleRenderer {
             Gdx.files.internal("sounds/block04.mp3")
         );
 
-       healSounds[0] = Gdx.audio.newSound(
+        healSounds[0] = Gdx.audio.newSound(
             Gdx.files.internal("sounds/heal01.mp3")
         );
         healSounds[1] = Gdx.audio.newSound(
@@ -118,6 +119,9 @@ public class BattleRenderer {
         buffSound = Gdx.audio.newSound(
             Gdx.files.internal("sounds/buff01.mp3")
         );
+        playerHitTexture = new Texture(
+            Gdx.files.internal("creatures/swordgethit.png")
+        );
 
         TextureRegion[][] frames = TextureRegion.split(
             healTexture,
@@ -134,12 +138,12 @@ public class BattleRenderer {
         healAnimation = new Animation<>(0.05f, healFrames);
 
 
-
         updateDialoguePosition(
             Gdx.graphics.getWidth(),
             Gdx.graphics.getHeight()
         );
     }
+
     public void playBuffAnimation() {
         buffAnimationTimer = BUFF_ANIMATION_DURATION;
         redFlashTimer = RED_FLASH_DURATION;
@@ -157,19 +161,23 @@ public class BattleRenderer {
             healSounds[index].play(0.8f);
         }
     }
+
     public void playBlockSound() {
         int index = random.nextInt(blockSounds.length);
         blockSounds[index].play(0.8f);
     }
+
     public void playShieldSound() {
         if (shieldSound != null) {
             shieldSound.play(0.8f);
         }
     }
+
     public void playHealAnimation() {
         healAnimationTime = 0f;
         playingHealAnimation = true;
     }
+
     public void playEnemyBuffAnimation() {
         enemyRedFlashTimer = ENEMY_BUFF_DURATION;
     }
@@ -177,6 +185,7 @@ public class BattleRenderer {
     public void setCurrentMenu(String menu) {
         this.currentMenu = menu;
     }
+
     public void setSelectedChoice(int selectedChoice) {
         this.selectedChoice = selectedChoice;
     }
@@ -190,75 +199,86 @@ public class BattleRenderer {
                        boolean showPlayer, boolean showAirSlash,
                        float enemyAlpha, boolean playerHitFlash,
                        boolean showShield) {
-            Texture background = assets.getBackground(round);
-            Texture insecureSword = assets.getSword();
-            // RENDERING OVERVIEW
-            // 1) Clear old pixels; 2) scale/draw the active background;
-            // 3) draw both creatures; 4) draw both HP bars;
-            // 5) draw the persistent top-left dialogue and bottom-right attack menu.
-            // The order matters: later drawings appear on top of earlier drawings.
-            //Clear the previous frame
-            ScreenUtils.clear(0.85f, 0.92f, 0.80f, 1f);
+        Texture background = assets.getBackground(round);
+        Texture insecureSword = assets.getSword();
+        // RENDERING OVERVIEW
+        // 1) Clear old pixels; 2) scale/draw the active background;
+        // 3) draw both creatures; 4) draw both HP bars;
+        // 5) draw the persistent top-left dialogue and bottom-right attack menu.
+        // The order matters: later drawings appear on top of earlier drawings.
+        //Clear the previous frame
+        ScreenUtils.clear(0.85f, 0.92f, 0.80f, 1f);
 
-            //Get the current window dimensions once
-            float screenWidth = Gdx.graphics.getWidth();
-            float screenHeight = Gdx.graphics.getHeight();
+        //Get the current window dimensions once
+        float screenWidth = Gdx.graphics.getWidth();
+        float screenHeight = Gdx.graphics.getHeight();
 
-            //Scale background without changing its aspect ratio
-            float scale = Math.max(
-                screenWidth / background.getWidth(),
-                screenHeight / background.getHeight()
-            );
+        //Scale background without changing its aspect ratio
+        float scale = Math.max(
+            screenWidth / background.getWidth(),
+            screenHeight / background.getHeight()
+        );
 
-            float bgWidth = background.getWidth() * scale;
-            float bgHeight = background.getHeight() * scale;
+        float bgWidth = background.getWidth() * scale;
+        float bgHeight = background.getHeight() * scale;
 
-            //Center background; some edges may be cropped
-            float bgX = (screenWidth - bgWidth) / 2;
-            float bgY = (screenHeight - bgHeight) / 2;
+        //Center background; some edges may be cropped
+        float bgX = (screenWidth - bgWidth) / 2;
+        float bgY = (screenHeight - bgHeight) / 2;
 
-            // ENEMY SIZE AND POSITION
-            // Use a larger square for Tung Tung without touching or stretching the source PNG.
-            // Round 1 = 35%; Round 2 = 43%; Round 3 = 40% of window height.
-            // Changing this one multiplier makes Tung Tung bigger/smaller.
-            // Set sprite sizes for all five enemies
-            float enemyScale;
+        // ENEMY SIZE AND POSITION
+        // Use a larger square for Tung Tung without touching or stretching the source PNG.
+        // Round 1 = 35%; Round 2 = 43%; Round 3 = 40% of window height.
+        // Changing this one multiplier makes Tung Tung bigger/smaller.
+        // Set sprite sizes for all five enemies
+        float enemyScale;
 
         switch (round) {
-            case 1: enemyScale = 0.35f; break;
-            case 2: enemyScale = 0.43f; break;
-            case 3: enemyScale = 0.40f; break;
-            case 4: enemyScale = 0.42f; break;
-            case 5: enemyScale = 0.46f; break;
-            default: enemyScale = 0.35f;
+            case 1:
+                enemyScale = 0.35f;
+                break;
+            case 2:
+                enemyScale = 0.43f;
+                break;
+            case 3:
+                enemyScale = 0.40f;
+                break;
+            case 4:
+                enemyScale = 0.42f;
+                break;
+            case 5:
+                enemyScale = 0.46f;
+                break;
+            default:
+                enemyScale = 0.35f;
         }
-            float enemySize = screenHeight * enemyScale;
+        float enemySize = screenHeight * enemyScale;
 
-            // Keep each enemy in the top-right portion of the screen.
-            // The X expression centers the sprite around 70% of the screen width.
-            float enemyX = screenWidth * 0.70f - enemySize / 2f;
-            // Same vertical base for both rounds; the larger Tung Tung grows upward.
-            float enemyY = screenHeight * 0.48f;
-            // Enemy HP bar position
-            float hpBarWidth = enemySize;
-            float hpBarHeight = Math.max(8f, screenHeight * 0.018f);
-            float hpBarX = enemyX;
-            float hpBarY = enemyY + enemySize + 10f;
-            swordFloatTimer += Gdx.graphics.getDeltaTime();
+        // Keep each enemy in the top-right portion of the screen.
+        // The X expression centers the sprite around 70% of the screen width.
+        float enemyX = screenWidth * 0.70f - enemySize / 2f;
+        // Same vertical base for both rounds; the larger Tung Tung grows upward.
+        float enemyY = screenHeight * 0.48f;
+        // Enemy HP bar position
+        float hpBarWidth = enemySize;
+        float hpBarHeight = Math.max(8f, screenHeight * 0.018f);
+        float hpBarX = enemyX;
+        float hpBarY = enemyY + enemySize + 10f;
+        swordFloatTimer += Gdx.graphics.getDeltaTime();
 
-            float floatX = (float) Math.cos(swordFloatTimer * FLOAT_SPEED)
-                * FLOAT_RADIUS;
+        float floatX = (float) Math.cos(swordFloatTimer * FLOAT_SPEED)
+            * FLOAT_RADIUS;
 
-            float floatY = (float) Math.sin(swordFloatTimer * FLOAT_SPEED)
-                * FLOAT_RADIUS;
-            batch.begin();
+        float floatY = (float) Math.sin(swordFloatTimer * FLOAT_SPEED)
+            * FLOAT_RADIUS;
+        batch.begin();
 
-            //Draw background first
-            batch.draw(background, bgX, bgY, bgWidth, bgHeight);
+        //Draw background first
+        batch.draw(background, bgX, bgY, bgWidth, bgHeight);
 
-            // ENEMY SPRITE: currentSprite changes between idle, attack, hurt and dead.
+        // ENEMY SPRITE: currentSprite changes between idle, attack, hurt and dead.
 
-            // ENEMY SPRITE: Buff makes the enemy grow and turn red.
+        // ENEMY SPRITE: Buff makes the enemy grow and turn red.
         float enemyDelta = Gdx.graphics.getDeltaTime();
 
         enemyRedFlashTimer = Math.max(
@@ -301,145 +321,178 @@ public class BattleRenderer {
 
         batch.setColor(Color.WHITE);
 
-    // Draw Air Slash over the enemy during the player's attack.
-            if (showAirSlash) {
-                float slashHeight = enemySize * 1.15f;
-                float slashWidth = slashHeight
-                    * airSlashTexture.getWidth()
-                    / airSlashTexture.getHeight();
+        // Draw Air Slash over the enemy during the player's attack.
+        if (showAirSlash) {
+            float slashHeight = enemySize * 1.15f;
+            float slashWidth = slashHeight
+                * airSlashTexture.getWidth()
+                / airSlashTexture.getHeight();
 
-                float slashX = enemyX + (enemySize - slashWidth) / 2f;
-                float slashY = enemyY + (enemySize - slashHeight) / 2f;
+            float slashX = enemyX + (enemySize - slashWidth) / 2f;
+            float slashY = enemyY + (enemySize - slashHeight) / 2f;
 
-                batch.draw(
-                    airSlashTexture,
-                    slashX,
-                    slashY,
-                    slashWidth,
-                    slashHeight
-                );
-            }
+            batch.draw(
+                airSlashTexture,
+                slashX,
+                slashY,
+                slashWidth,
+                slashHeight
+            );
+        }
 
-    // PLAYER SPRITE: hide the player while Air Slash is active.
-            float playerSize = screenHeight * 0.55f;
+        // PLAYER SPRITE: hide the player while Air Slash is active.
+        float playerSize = screenHeight * 0.55f;
 
-            float playerWidth = playerSize
-                * insecureSword.getWidth()
-                / insecureSword.getHeight();
+        float playerWidth = playerSize
+            * insecureSword.getWidth()
+            / insecureSword.getHeight();
 
-            float playerX = screenWidth * 0.10f;
-            float playerY = (screenHeight - playerSize) / 6.5f;
+        float playerX = screenWidth * 0.10f;
+        float playerY = (screenHeight - playerSize) / 6.5f;
 
 
-            //sword
-                float delta = Gdx.graphics.getDeltaTime();
-                swordAnimationTimer += delta;
+        //sword
+        float delta = Gdx.graphics.getDeltaTime();
+        swordAnimationTimer += delta;
         // Update red flash timer
         redFlashTimer = Math.max(0f, redFlashTimer - delta);
 
         // Update buff animation
-                buffAnimationTimer = Math.max(
-                    0f,
-                    buffAnimationTimer - delta
-                );
+        buffAnimationTimer = Math.max(
+            0f,
+            buffAnimationTimer - delta
+        );
 
         // Smoothly enlarge and shrink the sword
-                float buffProgress = 0f;
+        float buffProgress = 0f;
 
-                if (buffAnimationTimer > 0f) {
-                    float progress =
-                        1f - buffAnimationTimer / BUFF_ANIMATION_DURATION;
+        if (buffAnimationTimer > 0f) {
+            float progress =
+                1f - buffAnimationTimer / BUFF_ANIMATION_DURATION;
 
-                    buffProgress = (float) Math.sin(progress * Math.PI);
-                }
+            buffProgress = (float) Math.sin(progress * Math.PI);
+        }
 
-                float buffScale =
-                    1f + (BUFF_MAX_SCALE - 1f) * buffProgress;
+        float buffScale =
+            1f + (BUFF_MAX_SCALE - 1f) * buffProgress;
 
-            float swordOffsetY =
-                (float) Math.sin(swordAnimationTimer * SWORD_FLOAT_SPEED)
-                    * SWORD_FLOAT_HEIGHT;
-            // เงาแต่ละชั้นเคลื่อนไหวเหลื่อมจังหวะกัน
-            float shadowOffset1 =
-                (float) Math.sin(swordAnimationTimer * SHADOW_FLOAT_SPEED + 0.4f)
-                    * SHADOW_FLOAT_HEIGHT * 0.25f;
+        float swordOffsetY =
+            (float) Math.sin(swordAnimationTimer * SWORD_FLOAT_SPEED)
+                * SWORD_FLOAT_HEIGHT;
+        // เงาแต่ละชั้นเคลื่อนไหวเหลื่อมจังหวะกัน
+        float shadowOffset1 =
+            (float) Math.sin(swordAnimationTimer * SHADOW_FLOAT_SPEED + 0.4f)
+                * SHADOW_FLOAT_HEIGHT * 0.25f;
 
-            float shadowOffset2 =
-                (float) Math.sin(swordAnimationTimer * SHADOW_FLOAT_SPEED + 0.8f)
-                    * SHADOW_FLOAT_HEIGHT * 0.40f;
+        float shadowOffset2 =
+            (float) Math.sin(swordAnimationTimer * SHADOW_FLOAT_SPEED + 0.8f)
+                * SHADOW_FLOAT_HEIGHT * 0.40f;
 
-            float shadowOffset3 =
-                (float) Math.sin(swordAnimationTimer * SHADOW_FLOAT_SPEED + 1.2f)
-                    * SHADOW_FLOAT_HEIGHT * 0.55f;
+        float shadowOffset3 =
+            (float) Math.sin(swordAnimationTimer * SHADOW_FLOAT_SPEED + 1.2f)
+                * SHADOW_FLOAT_HEIGHT * 0.55f;
 
-            float shadowOffset4 =
-                (float) Math.sin(swordAnimationTimer * SHADOW_FLOAT_SPEED + 1.6f)
-                    * SHADOW_FLOAT_HEIGHT * 0.70f;
-
-                if (showPlayer) {
-                    float swordY = playerY + swordOffsetY;
-                    // Player red flash effect when using Buff
-                    // เงาชั้นที่ 4: จางที่สุดและอยู่ห่างที่สุด
-                    batch.setColor(0f, 0f, 0f, 0.08f);
-                    batch.draw(
-                        insecureSword,
-                        playerX - 80f,
-                        swordY - 14f + shadowOffset4,
-                        playerWidth,
-                        playerSize
-                    );
-                    // เงาชั้นที่ 3
-                    batch.setColor(0f, 0f, 0f, 0.12f);
-                    batch.draw(
-                        insecureSword,
-                        playerX - 60f,
-                        swordY - 9f + shadowOffset3,
-                        playerWidth,
-                        playerSize
-                    );
-                    // เงาชั้นที่ 2
-                    batch.setColor(0f, 0f, 0f, 0.17f);
-                    batch.draw(
-                        insecureSword,
-                        playerX - 40f,
-                        swordY - 5f + shadowOffset2,
-                        playerWidth,
-                        playerSize
-                    );
-                    // เงาชั้นที่ 1: ใกล้ดาบหลักที่สุด
-                    batch.setColor(0f, 0f, 0f, 0.22f);
-                    batch.draw(
-                        insecureSword,
-                        playerX - 20f,
-                        swordY - 2f + shadowOffset1,
-                        playerWidth,
-                        playerSize
-                    );
-
-                    // ดาบหลัก: กระพริบสีขาวเมื่อโดนโจมตี
-                    // ดาบหลัก: เปลี่ยนสีเมื่อใช้ Buff หรือโดนโจมตี
-                    if (playerHitFlash) {
-                        // โดนตี: สีขาวจาง
-                        batch.setColor(1f, 1f, 1f, 0.55f);
-                    } else if (redFlashTimer > 0f) {
-                        // ใช้ Buff: สีแดงชั่วคราว
-                        batch.setColor(1f, 0f, 0f, 1f);
-                    } else {
-                        // ปกติ: สีเดิม
-                        batch.setColor(Color.WHITE);
-                    }
+        float shadowOffset4 =
+            (float) Math.sin(swordAnimationTimer * SHADOW_FLOAT_SPEED + 1.6f)
+                * SHADOW_FLOAT_HEIGHT * 0.70f;
 
 
-                    batch.draw(
-                        insecureSword,
-                        playerX - (playerWidth * buffScale - playerWidth) / 2f,
-                        swordY - (playerSize * buffScale - playerSize) / 2f,
-                        playerWidth * buffScale,
-                        playerSize * buffScale
-                    );
+        float hitSpriteScale = 0.9f; // 80% ของขนาดเดิม
+        float hitWidth = playerWidth * hitSpriteScale;
+        float hitHeight = playerSize * hitSpriteScale;
 
+        if (showPlayer) {
+            float swordY = playerY + swordOffsetY;
+
+            if (playerHitFlash) {
+                // when hit
+                batch.setColor(1f, 1f, 1f, 0.75f);
+                float hitRotation = +12f; // เอียง 12 องศา
+                batch.setColor(1f, 1f, 1f, 0.8f);
+
+                batch.draw(
+                    playerHitTexture,
+                    playerX + (playerWidth - hitWidth) / 2f,
+                    swordY + (playerSize - hitHeight) / 2f,
+                    hitWidth / 2f,
+                    hitHeight / 2f,
+                    hitWidth,
+                    hitHeight,
+                    1f,
+                    1f,
+                    hitRotation,
+                    0,
+                    0,
+                    playerHitTexture.getWidth(),
+                    playerHitTexture.getHeight(),
+                    false,
+                    false
+                );
+
+                batch.setColor(Color.WHITE);
+
+
+                // รีเซ็ตสีหลังวาด
+                batch.setColor(Color.WHITE);
+            } else {
+                // ไม่ได้โดนตี: แสดงเงาตามปกติ
+
+                batch.setColor(0f, 0f, 0f, 0.08f);
+                batch.draw(
+                    insecureSword,
+                    playerX - 80f,
+                    swordY - 14f + shadowOffset4,
+                    playerWidth,
+                    playerSize
+                );
+
+                batch.setColor(0f, 0f, 0f, 0.12f);
+                batch.draw(
+                    insecureSword,
+                    playerX - 60f,
+                    swordY - 9f + shadowOffset3,
+                    playerWidth,
+                    playerSize
+                );
+
+                batch.setColor(0f, 0f, 0f, 0.17f);
+                batch.draw(
+                    insecureSword,
+                    playerX - 40f,
+                    swordY - 5f + shadowOffset2,
+                    playerWidth,
+                    playerSize
+                );
+
+                batch.setColor(0f, 0f, 0f, 0.22f);
+                batch.draw(
+                    insecureSword,
+                    playerX - 20f,
+                    swordY - 2f + shadowOffset1,
+                    playerWidth,
+                    playerSize
+                );
+
+                // ดาบปกติ พร้อมเอฟเฟกต์ Buff
+                if (redFlashTimer > 0f) {
+                    batch.setColor(1f, 0f, 0f, 1f);
+                } else {
                     batch.setColor(Color.WHITE);
                 }
+
+                batch.draw(
+                    insecureSword,
+                    playerX - (playerWidth * buffScale - playerWidth) / 2f,
+                    swordY - (playerSize * buffScale - playerSize) / 2f,
+                    playerWidth * buffScale,
+                    playerSize * buffScale
+                );
+            }
+
+            // รีเซ็ตสี ป้องกันสีตกค้างไปยังรูปอื่น
+            batch.setColor(Color.WHITE);
+        }
+
         if (playingHealAnimation) {
             healAnimationTime += Gdx.graphics.getDeltaTime();
 
@@ -831,6 +884,9 @@ public class BattleRenderer {
         }
         if (buffSound != null) {
             buffSound.dispose();
+        }
+        if (playerHitTexture != null) {
+            playerHitTexture.dispose();
         }
 
 

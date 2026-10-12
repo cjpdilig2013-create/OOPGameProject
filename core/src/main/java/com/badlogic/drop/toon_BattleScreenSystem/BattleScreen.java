@@ -15,6 +15,7 @@ import java.util.Random;
 import com.badlogic.drop.ot_MoveSkillsSystem.HealMove;
 import com.badlogic.drop.ot_MoveSkillsSystem.SpecialSkillMove;
 import com.badlogic.drop.ot_MoveSkillsSystem.ChargeMove;
+import com.badlogic.gdx.audio.Sound;
 
 // OOP Inheritance: BattleScreen extends ScreenAdapter.
 // This class controls the game's flow, not how each image is drawn.
@@ -67,6 +68,14 @@ public class BattleScreen extends ScreenAdapter {
 
     private Move[] enemyMoves;
 
+    private Sound buttonSound;
+
+    private boolean waitingToUseMove = false;
+    private float moveDelayTimer = 0f;
+    private static final float MOVE_DELAY = 1f;
+
+    // save player move
+    private int selectedMove = 0;
 
 
 
@@ -112,12 +121,22 @@ public class BattleScreen extends ScreenAdapter {
             50,
             "Insecure Sword restores 50 HP!"
         );
+        //select sound
+        buttonSound = Gdx.audio.newSound(
+            Gdx.files.internal("effect/ButtonSoundEffect.mp3")
+        );
 
         specialSkillMove = new SpecialSkillMove();
         // Create the enemy's two moves
         enemyMoves = EnemyFactory.createEnemyMoves(round);
         enemyMove = enemyMoves[0];
         battleMessage = battleStatus("A wild Garlic Man appeared!");
+
+    }
+    private void playButtonSound() {
+        if (buttonSound != null) {
+            buttonSound.play(0.2f);
+        }
     }
 
     private enum MenuState {
@@ -130,6 +149,7 @@ public class BattleScreen extends ScreenAdapter {
 
     private MenuState menuState = MenuState.MAIN_MENU;
 
+    private int selectedChoice = 0;
 
 
     @Override
@@ -150,142 +170,107 @@ public class BattleScreen extends ScreenAdapter {
                 || menuState == MenuState.FIGHT_MENU) {
                 menuState = MenuState.MAIN_MENU;
                 battleMessage = "Choose your action.";
+
             }
         }
+        // Navigate the 2x2 menu with arrow keys.
+        if ((menuState == MenuState.MAIN_MENU
+            || menuState == MenuState.FIGHT_MENU)
+            && !waitingForNextRound
+            && !allRoundsWon
+            && !waitingToUseMove
+            && !battle.isBattleOver()
+            && player.isAlive()
+            && (menuState != MenuState.FIGHT_MENU
+            || battle.getTurnManager().isPlayerTurn())) {
 
-        if (menuState == MenuState.MAIN_MENU) {
-            if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_1)) {
-                menuState = MenuState.FIGHT_MENU;
-                battleMessage = "Choose your move!";
-            } else if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_2)) {
-                menuState = MenuState.NOTE;
-                battleMessage = "NOTE: Choose your strategy carefully. Press ESC to return.";
-            } else if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_3)) {
-                menuState = MenuState.STATUS;
-                battleMessage = "Player HP: " + player.getCurrentHp()
-                    + " | Enemy HP: " + enemy.getCurrentHp()
-                    + " | Press ESC to return.";
-            } else if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_4)) {
-                menuState = MenuState.SURRENDER_CONFIRM;
-                battleMessage = "Surrender? Press Y to confirm or N to cancel.";
-            }
-        } else if (menuState == MenuState.NOTE) {
-            if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
-                menuState = MenuState.MAIN_MENU;
-                battleMessage = "Choose your action.";
-            }
-        } else if (menuState == MenuState.STATUS) {
-            if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
-                menuState = MenuState.MAIN_MENU;
-                battleMessage = "Choose your action.";
-            }
-        } else if (menuState == MenuState.SURRENDER_CONFIRM) {
-            if (Gdx.input.isKeyJustPressed(Input.Keys.Y)) {
-                menuState = MenuState.MAIN_MENU;
-                allRoundsWon = true;
-                assets.stopMusic();
-                battleMessage = "You surrendered. Game over.";
-            } else if (Gdx.input.isKeyJustPressed(Input.Keys.N)) {
-                menuState = MenuState.MAIN_MENU;
-                battleMessage = "You chose to continue fighting.";
-            }
-        } else if (menuState == MenuState.FIGHT_MENU) {
+            updateChoiceNavigation();
+        }
 
-            if (!waitingForNextRound && !allRoundsWon
-                && battle.getTurnManager().isPlayerTurn()
-                && !battle.isBattleOver()
-                && player.isAlive()) {
+            if (menuState == MenuState.MAIN_MENU) {
+                if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
+                    playButtonSound();
 
-                if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_1)) {
-                    String result = battle.playerTurn(splashHit);
+                    switch (selectedChoice) {
+                        case 0:
+                            menuState = MenuState.FIGHT_MENU;
+                            selectedChoice = 0;
+                            battleMessage = "Choose your move!";
+                            break;
 
-                    airSlashActive = true;
-                    airSlashTimer = AIR_SLASH_DURATION;
-                    int index = random.nextInt(slashSounds.length);
-                    slashSounds[index].play();
+                        case 1:
+                            menuState = MenuState.NOTE;
+                            battleMessage =
+                                "NOTE: Choose your strategy carefully. Press ESC to return.";
+                            break;
 
-                    showPlayerSword = false;
-                    swordHideTimer = SWORD_HIDE_DURATION;
+                        case 2:
+                            menuState = MenuState.STATUS;
+                            battleMessage =
+                                "Player HP: " + player.getCurrentHp()
+                                    + " | Enemy HP: " + enemy.getCurrentHp()
+                                    + " | Press ESC to return.";
+                            break;
 
-                    System.out.println(result);
-                    battleMessage = battleStatus("Insecure Sword used Slash Hit!");
-
-                    System.out.println(
-                        enemyDisplayName + " HP: " + enemy.getCurrentHp()
-                    );
-
-                    if (enemy.isAlive()) {
-                        currentSprite = assets.getHurt(round);
-                        animationTimer = 0.4f;
-                        enemyTurnTimer = 1.5f;
-                        enemyFadeTimer = ENEMY_FADE_DURATION;
-                    } else {
-                        currentSprite = assets.getDead(round);
-                        assets.stopMusic();
-                        assets.playEnemyDefeated();
-                        animationTimer = 0f;
-                        enemyTurnTimer = 0f;
-
-                        if (round < 5) {
-                            waitingForNextRound = true;
-                            String nextName = EnemyFactory.getEnemyName(round + 1);
-                            battleMessage = battleStatus(
-                                "YOU WIN! " + enemyDisplayName
-                                    + " defeated!\nNEXT: " + nextName + " - Press ENTER"
-                            );
-                        } else {
-                            allRoundsWon = true;
-                            battleMessage = battleStatus(
-                                "YOU WIN! Professor Nek defeated!\nPrototype complete!"
-                            );
-                        }
+                        case 3:
+                            menuState = MenuState.SURRENDER_CONFIRM;
+                            battleMessage =
+                                "Surrender? Press Y to confirm or N to cancel.";
+                            break;
                     }
-
+                }
+            } else if (menuState == MenuState.NOTE) {
+                if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
                     menuState = MenuState.MAIN_MENU;
-
-                } else if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_2)) {
-                    String result = battle.playerTurn(defendMove);
-                    renderer.playShieldSound();
-                    showShield = true;
-
-                    System.out.println(result);
-                    battleMessage = battleStatus("Insecure Sword used Defend!");
-
-                    if (enemy.isAlive() && !battle.isBattleOver()) {
-                        enemyTurnTimer = 1.5f;
-                    }
-
+                    selectedChoice = 1;
+                    battleMessage = "Choose your action.";
+                }
+            } else if (menuState == MenuState.STATUS) {
+                if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
                     menuState = MenuState.MAIN_MENU;
-
-                } else if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_3)) {
-                    String result = battle.playerTurn(healMove);
-                    renderer.playHealSound();
-                    System.out.println(result);
-                    renderer.playHealAnimation();
-
-                    battleMessage = battleStatus(result);
-
-                    if (enemy.isAlive() && !battle.isBattleOver()) {
-                        enemyTurnTimer = 1.5f;
-                    }
-
+                    selectedChoice = 2;
+                    battleMessage = "Choose your action.";
+                }
+            } else if (menuState == MenuState.SURRENDER_CONFIRM) {
+                if (Gdx.input.isKeyJustPressed(Input.Keys.Y)) {
                     menuState = MenuState.MAIN_MENU;
-
-                } else if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_4)) {
-                    String result = battle.playerTurn(specialSkillMove);
-                    renderer.playBuffAnimation();
-
-                    System.out.println(result);
-                    battleMessage = battleStatus(result);
-
-                    if (enemy.isAlive() && !battle.isBattleOver()) {
-                        enemyTurnTimer = 1.5f;
-                    }
-
+                    allRoundsWon = true;
+                    assets.stopMusic();
+                    battleMessage = "You surrendered. Game over.";
+                } else if (Gdx.input.isKeyJustPressed(Input.Keys.N)) {
                     menuState = MenuState.MAIN_MENU;
+                    selectedChoice = 3;
+                    battleMessage = "You chose to continue fighting.";
+                }
+            } else if (menuState == MenuState.FIGHT_MENU) {
+                if (!waitingForNextRound
+                    && !allRoundsWon
+                    && !waitingToUseMove
+                    && battle.getTurnManager().isPlayerTurn()
+                    && !battle.isBattleOver()
+                    && player.isAlive()
+                    && Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
+
+                    selectedMove = selectedChoice + 1;
+                    playButtonSound();
+                    waitingToUseMove = true;
+                    moveDelayTimer = MOVE_DELAY;
+                    battleMessage = "Preparing move...";
                 }
             }
+
+
+
+
+
+        if (waitingToUseMove) {
+            moveDelayTimer -= delta;
+
+            if (moveDelayTimer <= 0f) {
+                executeSelectedMove();
+            }
         }
+
 
         if (animationTimer > 0f) {
 
@@ -423,7 +408,8 @@ public class BattleScreen extends ScreenAdapter {
 
 
 
-
+        renderer.setCurrentMenu(menuState.name());
+        renderer.setSelectedChoice(selectedChoice);
         // RENDERING: hand all graphics to the renderer, leaving BattleScreen
         // responsible only for inputs, turns, and round progression.
         renderer.render(
@@ -439,6 +425,37 @@ public class BattleScreen extends ScreenAdapter {
 
 
     }
+
+    private void updateChoiceNavigation() {
+        if (Gdx.input.isKeyJustPressed(Input.Keys.LEFT)) {
+            if (selectedChoice % 2 == 1) {
+                selectedChoice--;
+                playButtonSound();
+            }
+        }
+
+        if (Gdx.input.isKeyJustPressed(Input.Keys.RIGHT)) {
+            if (selectedChoice % 2 == 0) {
+                selectedChoice++;
+                playButtonSound();
+            }
+        }
+
+        if (Gdx.input.isKeyJustPressed(Input.Keys.UP)) {
+            if (selectedChoice >= 2) {
+                selectedChoice -= 2;
+                playButtonSound();
+            }
+        }
+
+        if (Gdx.input.isKeyJustPressed(Input.Keys.DOWN)) {
+            if (selectedChoice < 2) {
+                selectedChoice += 2;
+                playButtonSound();
+            }
+        }
+    }
+
 
     // RESIZE: tell renderer to adjust its projection + top-left dialogue position.
     @Override
@@ -467,7 +484,118 @@ public class BattleScreen extends ScreenAdapter {
             debuffSound.dispose();
             debuffSound = null;
         }
+        if (buttonSound != null) {
+            buttonSound.dispose();
+        }
     }
+
+    private void executeSelectedMove() {
+        String result;
+
+        switch (selectedMove) {
+            case 1:
+                result = battle.playerTurn(splashHit);
+
+                airSlashActive = true;
+                airSlashTimer = AIR_SLASH_DURATION;
+
+                int index = random.nextInt(slashSounds.length);
+                slashSounds[index].play();
+
+                showPlayerSword = false;
+                swordHideTimer = SWORD_HIDE_DURATION;
+
+                if (enemy.isAlive()) {
+                    currentSprite = assets.getHurt(round);
+                    animationTimer = 0.4f;
+                    enemyTurnTimer = 1.5f;
+                    enemyFadeTimer = ENEMY_FADE_DURATION;
+                } else {
+                    currentSprite = assets.getDead(round);
+                    assets.stopMusic();
+                    assets.playEnemyDefeated();
+                    animationTimer = 0f;
+                    enemyTurnTimer = 0f;
+
+                    if (round < 5) {
+                        waitingForNextRound = true;
+                        String nextName =
+                            EnemyFactory.getEnemyName(round + 1);
+
+                        battleMessage = battleStatus(
+                            "YOU WIN! " + enemyDisplayName
+                                + " defeated!\nNEXT: " + nextName
+                                + " - Press ENTER"
+                        );
+                    } else {
+                        allRoundsWon = true;
+                        battleMessage = battleStatus(
+                            "YOU WIN! Professor Nek defeated!\n"
+                                + "Prototype complete!"
+                        );
+                    }
+                }
+
+                if (enemy.isAlive()) {
+                    battleMessage =
+                        battleStatus("Insecure Sword used Slash Hit!");
+                }
+                break;
+
+            case 2:
+                result = battle.playerTurn(defendMove);
+                renderer.playShieldSound();
+                showShield = true;
+
+                battleMessage =
+                    battleStatus("Insecure Sword used Defend!");
+
+                if (enemy.isAlive() && !battle.isBattleOver()) {
+                    enemyTurnTimer = 1.5f;
+                }
+                break;
+
+            case 3:
+                result = battle.playerTurn(healMove);
+                renderer.playHealSound();
+                renderer.playHealAnimation();
+
+                battleMessage = battleStatus(result);
+
+                if (enemy.isAlive() && !battle.isBattleOver()) {
+                    enemyTurnTimer = 1.5f;
+                }
+                break;
+
+            case 4:
+                result = battle.playerTurn(specialSkillMove);
+                renderer.playBuffAnimation();
+
+                battleMessage = battleStatus(result);
+
+                if (enemy.isAlive() && !battle.isBattleOver()) {
+                    enemyTurnTimer = 1.5f;
+                }
+                break;
+
+            default:
+                return;
+        }
+
+        System.out.println(result);
+
+        if (selectedMove == 1) {
+            System.out.println(
+                enemyDisplayName + " HP: " + enemy.getCurrentHp()
+            );
+        }
+
+        selectedMove = 0;
+        waitingToUseMove = false;
+        moveDelayTimer = 0f;
+        menuState = MenuState.MAIN_MENU;
+    }
+
 
 
     // ROUND TRANSITION

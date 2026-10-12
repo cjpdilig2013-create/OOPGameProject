@@ -71,6 +71,9 @@ public class BattleRenderer {
     private float enemyBuffScale = 1.0f;
     private float enemyRedFlashTimer = 0f;
     private static final float ENEMY_BUFF_DURATION = 0.5f;
+     //choicce screen
+    private String currentMenu = "MAIN_MENU";
+    private int selectedChoice = 0;
 
 
     private Texture shadowSword;
@@ -169,6 +172,13 @@ public class BattleRenderer {
     }
     public void playEnemyBuffAnimation() {
         enemyRedFlashTimer = ENEMY_BUFF_DURATION;
+    }
+
+    public void setCurrentMenu(String menu) {
+        this.currentMenu = menu;
+    }
+    public void setSelectedChoice(int selectedChoice) {
+        this.selectedChoice = selectedChoice;
     }
 
 
@@ -632,6 +642,7 @@ public class BattleRenderer {
     // ATTACK MENU: draw four visible placeholders in a 2x2 grid.
     // For this prototype only key 1 triggers the actual player move;
     // the other keyboard numbers are still sprite testing shortcuts.
+
     private void drawAttackMenu() {
         float screenWidth = Gdx.graphics.getWidth();
         float screenHeight = Gdx.graphics.getHeight();
@@ -650,20 +661,46 @@ public class BattleRenderer {
         float cellWidth = (menuWidth - gap * 3f) / 2f;
         float cellHeight = (menuHeight - gap * 3f) / 2f;
 
-        // Draw translucent white background
-        Gdx.gl.glEnable(com.badlogic.gdx.graphics.GL20.GL_BLEND);
+        // Enable transparency
+        Gdx.gl.glEnable(
+            com.badlogic.gdx.graphics.GL20.GL_BLEND
+        );
         Gdx.gl.glBlendFunc(
             com.badlogic.gdx.graphics.GL20.GL_SRC_ALPHA,
             com.badlogic.gdx.graphics.GL20.GL_ONE_MINUS_SRC_ALPHA
         );
 
+        boolean canHighlight =
+            currentMenu.equals("MAIN_MENU")
+                || currentMenu.equals("FIGHT_MENU");
+
+        // 1. Draw the translucent menu background
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
         shapeRenderer.setColor(1f, 1f, 1f, 0.35f);
         shapeRenderer.rect(menuX, menuY, menuWidth, menuHeight);
-        shapeRenderer.end();
-        shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
-        shapeRenderer.setColor(Color.WHITE);
 
+        // 2. Draw the gold background inside the selected cell
+        if (canHighlight && selectedChoice >= 0 && selectedChoice < 4) {
+            int selectedRow = 1 - (selectedChoice / 2);
+            int selectedCol = selectedChoice % 2;
+
+            float selectedX = menuX + gap
+                + selectedCol * (cellWidth + gap);
+            float selectedY = menuY + gap
+                + selectedRow * (cellHeight + gap);
+
+            shapeRenderer.setColor(1f, 0.75f, 0.1f, 0.35f);
+            shapeRenderer.rect(
+                selectedX, selectedY, cellWidth, cellHeight
+            );
+        }
+
+        shapeRenderer.end();
+
+        // 3. Draw the menu borders
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+
+        shapeRenderer.setColor(Color.WHITE);
         shapeRenderer.rect(menuX, menuY, menuWidth, menuHeight);
 
         for (int row = 0; row < 2; row++) {
@@ -671,46 +708,105 @@ public class BattleRenderer {
                 float x = menuX + gap + col * (cellWidth + gap);
                 float y = menuY + gap + row * (cellHeight + gap);
 
+                int choiceIndex = (1 - row) * 2 + col;
+
+                if (canHighlight && choiceIndex == selectedChoice) {
+                    shapeRenderer.setColor(Color.GOLD);
+                } else {
+                    shapeRenderer.setColor(Color.WHITE);
+                }
+
                 shapeRenderer.rect(x, y, cellWidth, cellHeight);
             }
         }
 
         shapeRenderer.end();
-        Gdx.gl.glDisable(com.badlogic.gdx.graphics.GL20.GL_BLEND);
 
-        // วาดข้อความในแต่ละช่อง
+        Gdx.gl.glDisable(
+            com.badlogic.gdx.graphics.GL20.GL_BLEND
+        );
 
-        // Draw the four main menu options
+        // 4. Draw menu text
+        String[] options;
+
+        switch (currentMenu) {
+            case "FIGHT_MENU":
+                options = new String[]{
+                    "Slash",
+                    "Shield",
+                    "Cure",
+                    "Sharpen"
+                };
+                break;
+
+            case "NOTE":
+                options = new String[]{
+                    "NOTE",
+                    "Use ESC to return",
+                    "",
+                    ""
+                };
+                break;
+
+            case "STATUS":
+                options = new String[]{
+                    "STATUS",
+                    "View battle status",
+                    "",
+                    ""
+                };
+                break;
+
+            case "SURRENDER_CONFIRM":
+                options = new String[]{
+                    "Surrender",
+                    "Continue",
+                    "",
+                    ""
+                };
+                break;
+
+            default:
+                options = new String[]{
+                    "Fight",
+                    "NOTE",
+                    "Status",
+                    "Surrender"
+                };
+                break;
+        }
+
+        float[] textX = {
+            menuX + gap + 8f,
+            menuX + gap + cellWidth + gap + 8f,
+            menuX + gap + 8f,
+            menuX + gap + cellWidth + gap + 8f
+        };
+
+        float[] textY = {
+            menuY + gap + cellHeight + gap + cellHeight / 2f + 5f,
+            menuY + gap + cellHeight + gap + cellHeight / 2f + 5f,
+            menuY + gap + cellHeight / 2f + 5f,
+            menuY + gap + cellHeight / 2f + 5f
+        };
+
         batch.begin();
 
         font.setColor(Color.BLACK);
         font.getData().setScale(fontScale);
 
-        // Top-left
-        font.draw(batch, "1. Fight",
-            menuX + gap + 8f,
-            menuY + gap + cellHeight + gap + cellHeight / 2f + 5f);
-
-        // Top-right
-        font.draw(batch, "2. NOTE",
-            menuX + gap + cellWidth + gap + 8f,
-            menuY + gap + cellHeight + gap + cellHeight / 2f + 5f);
-
-        // Bottom-left
-        font.draw(batch, "3. Status",
-            menuX + gap + 8f,
-            menuY + gap + cellHeight / 2f + 5f);
-
-        // Bottom-right
-        font.draw(batch, "4. Surrender",
-            menuX + gap + cellWidth + gap + 8f,
-            menuY + gap + cellHeight / 2f + 5f);
+        for (int i = 0; i < options.length; i++) {
+            if (!options[i].isEmpty()) {
+                font.draw(batch, options[i], textX[i], textY[i]);
+            }
+        }
 
         batch.end();
     }
 
 
-        public void dispose() {
+
+    public void dispose() {
         if (shieldTexture != null) {
             shieldTexture.dispose();
         }

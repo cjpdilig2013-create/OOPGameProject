@@ -685,19 +685,19 @@ public class BattleRenderer {
         font.getData().setScale(fontScale);
 
 
-        font.draw(batch, "1. Splash Hit",
+        font.draw(batch, "1. Slash Hit",
             menuX + gap + 8f,
             menuY + gap + cellHeight + gap + cellHeight / 2f + 5f);
 
-        font.draw(batch, "2. Defend",
+        font.draw(batch, "2. Sword and Shield",
             menuX + gap + cellWidth + gap + 8f,
             menuY + gap + cellHeight + gap + cellHeight / 2f + 5f);
 
-        font.draw(batch, "3. Heal",
+        font.draw(batch, "3. Cure",
             menuX + gap + 8f,
             menuY + gap + cellHeight / 2f + 5f);
 
-        font.draw(batch, "4. Buff",
+        font.draw(batch, "4. Sharpen",
             menuX + gap + cellWidth + gap + 8f,
             menuY + gap + cellHeight / 2f + 5f);
 

@@ -96,7 +96,7 @@ public class BattleScreen extends ScreenAdapter {
         battle = new Battle(player, enemy);
         battle.startBattle();
         //1 move
-        splashHit = new DamageMove("Splash Hit", 10,
+        splashHit = new DamageMove("Slash Hit", 10,
             "Insecure Sword attacks Garlic Man!");
 
         //2 move
@@ -130,7 +130,7 @@ public class BattleScreen extends ScreenAdapter {
             startNextRound();
         }
 
-        // KEYBOARD CONTROLS: 1 uses Splash Hit. Keys 2-4 preview enemy sprites.
+        // KEYBOARD CONTROLS: 1 uses Slash Hit. Keys 2-4 preview enemy sprites.
         // These extra keys are temporary debugging shortcuts, not real moves.
         if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_1)) {
 
@@ -156,7 +156,7 @@ public class BattleScreen extends ScreenAdapter {
 
                 // Show the attack result in IntelliJ's console
                 System.out.println(result);
-                battleMessage = battleStatus("Insecure Sword used Splash Hit!");
+                battleMessage = battleStatus("Insecure Sword used Slash Hit!");
 
                 // Display the current enemy's remaining HP
                 System.out.println(
@@ -480,7 +480,7 @@ public class BattleScreen extends ScreenAdapter {
         animationTimer = 0f;
         enemyTurnTimer = 0f;
 
-        // PLAYER MOVE: same placeholder Splash Hit for now.
+        // PLAYER MOVE: same placeholder Slash Hit for now.
         // ENEMY MOVE: chosen per opponent by EnemyFactory.
 
 

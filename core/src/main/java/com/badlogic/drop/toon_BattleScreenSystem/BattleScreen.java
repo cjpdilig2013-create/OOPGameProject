@@ -96,7 +96,7 @@ public class BattleScreen extends ScreenAdapter {
         battle = new Battle(player, enemy);
         battle.startBattle();
         //1 move
-        splashHit = new DamageMove("Splash Hit", 500,
+        splashHit = new DamageMove("Splash Hit", 10,
             "Insecure Sword attacks Garlic Man!");
 
         //2 move

@@ -142,7 +142,7 @@ public class BattleRenderer {
         redFlashTimer = RED_FLASH_DURATION;
         // เล่นเสียง Buff
         if (buffSound != null) {
-            buffSound.play(0.8f);
+            buffSound.play(0.4f);
         }
     }
 

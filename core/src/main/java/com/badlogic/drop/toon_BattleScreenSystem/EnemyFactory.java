@@ -6,11 +6,11 @@ import com.badlogic.drop.ot_MoveSkillsSystem.Move;
 import com.badlogic.drop.ot_MoveSkillsSystem.ChargeMove;
 import com.badlogic.drop.ot_MoveSkillsSystem.EnemyBuffMove;
 
-// ENEMY FACTORY: creates enemy stats, signature attacks and display names.
-// BattleScreen asks this class for the current round's opponent.
+//Enemy Factory is where we create the Spirtes for the Enemies
+//This includes there Stats (HP, Attack, etc.) and also there Move names and the damage it does
 public class EnemyFactory {
 
-    // Enemy constructor: name, HP, attack, defense, speed.
+    //Enemy Constructor (Creating stats for the enemies)
     public static Enemy createEnemy(int round) {
         switch (round) {
             case 1: return new Enemy("Garlic Man", 60, 12, 8, 12);
@@ -22,14 +22,13 @@ public class EnemyFactory {
         }
     }
 
-    // POLYMORPHISM: all signature attacks use the shared Move interface.
-    // DamageMove constructor: move name, power, description.
 
+    //OOP POLYMORPHISM (We inherit the moves and the enemy and use it)
     public static Move createEnemyMove(int round) {
         switch (round) {
-            case 1: return new ChargeMove("Garlic Punch", 10,
+            case 1: return new ChargeMove("Garlic Punch", 10, //Garlic Man
                 "Garlic Man charges a powerful punch!");
-            case 2: return new ChargeMove("Tung Tung Bong", 15,
+            case 2: return new ChargeMove("Tung Tung Bong", 15, //Tung Tung Man
                 "Tung Tung Man charges a powerful attack!");
             case 3:
                 return new ChargeMove(
@@ -45,7 +44,7 @@ public class EnemyFactory {
         }
     }
 
-    // Name displayed in the dialogue box and victory screen.
+    //Displaying the name in the BattleScreen
     public static String getEnemyName(int round) {
         switch (round) {
             case 1: return "Garlic Man";
@@ -57,7 +56,7 @@ public class EnemyFactory {
         }
     }
 
-    // Name displayed when the current enemy attacks.
+    //The name that will display when the enemy attacks (Ex: Garlic Punch!)
     public static String getMoveName(int round) {
         switch (round) {
             case 1: return "Garlic Punch";

@@ -5,10 +5,10 @@ import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.Texture;
 
-// ENEMY ASSETS: owns all battle backgrounds, character sprites, music, and sounds.
-// Load resources once; switch between them based on the current round.
+
+//This is the Enemy Assets Tab: This is where we store all the backgrounds, sound effects (enemy and creature), and more below
 public class EnemyAssets {
-    private final Texture garlicBackground, tungBackground, calcBackground;
+    private final Texture garlicBackground, tungBackground, calcBackground, bookBackground, nekBackground;
     private final Texture insecureSword;
     private final Texture[] garlicSprites, tungSprites, calcSprites, bookSprites, nekSprites;
     private final Music garlicMusic, tungMusic, calcMusic, bookMusic, nekMusic;
@@ -17,13 +17,17 @@ public class EnemyAssets {
     private Music battleMusic;
 
     public EnemyAssets() {
-        // BACKGROUNDS: paths are relative to the assets folder.
-        garlicBackground = new Texture("backgrounds/battle-background.png");
-        tungBackground = new Texture("backgrounds/battle-background-tung.png");
-        calcBackground = new Texture("backgrounds/battle-background-calc.png");
+        //Backgrounds for the enemies. (Can see it battle)
+        garlicBackground = new Texture("backgrounds/garlic-background.png");
+        tungBackground = new Texture("backgrounds/tung-background.png");
+        calcBackground = new Texture("backgrounds/calc-background.png");
+        bookBackground = new Texture("backgrounds/book-background.png");
+        nekBackground = new Texture("backgrounds/nek-background.png");
+
         insecureSword = new Texture("creatures/swordstand.png");
 
-        // SPRITES: each set is ordered idle, attack, hurt, dead.
+
+        //Sprites for the Enemies (4 states: Idle, Attack, Hurt, Dead)
         garlicSprites = new Texture[] {
             new Texture("enemies/garlic_idle.png"),
             new Texture("enemies/garlic_attack.png"),
@@ -42,14 +46,14 @@ public class EnemyAssets {
             new Texture("enemies/calc-hurt.png"),
             new Texture("enemies/calc-dead.png")
         };
-        // ROUND 4: Angry Book.
+
         bookSprites = new Texture[] {
             new Texture("enemies/book-idle.png"),
             new Texture("enemies/book-attack.png"),
             new Texture("enemies/book-hurt.png"),
             new Texture("enemies/book-dead.png")
         };
-        // ROUND 5: Professor Boss uses the existing nek sprite set.
+
         nekSprites = new Texture[] {
             new Texture("enemies/nek-idle.png"),
             new Texture("enemies/nek-attack.png"),
@@ -57,7 +61,7 @@ public class EnemyAssets {
             new Texture("enemies/nek-dead.png")
         };
 
-        // NEAREST FILTER: keeps pixel art sharp when scaled up.
+        //Nearest increases the scale for the enemies so that the states aren't blurred
         for (Texture t : garlicSprites) setNearest(t);
         for (Texture t : tungSprites) setNearest(t);
         for (Texture t : calcSprites) setNearest(t);
@@ -65,7 +69,8 @@ public class EnemyAssets {
         for (Texture t : nekSprites) setNearest(t);
         setNearest(insecureSword);
 
-        // MUSIC: long background music loops throughout its round.
+
+        //Background music for the enemies (All the same until the final battle)
         garlicMusic = Gdx.audio.newMusic(Gdx.files.internal("music/EnemyApproaching-TobyFox.mp3"));
         tungMusic = Gdx.audio.newMusic(Gdx.files.internal("music/EnemyApproaching-TobyFox.mp3"));
         calcMusic = Gdx.audio.newMusic(Gdx.files.internal("music/EnemyApproaching-TobyFox.mp3"));
@@ -77,7 +82,7 @@ public class EnemyAssets {
             track.setVolume(0.35f);
         }
 
-        // SOUND EFFECTS: short sounds played only on an attack or defeat.
+        //Sound effect for when the creature attacks and when they are defeated
         garlicAttackSound = Gdx.audio.newSound(Gdx.files.internal("sounds/garlic-attack.mp3"));
         tungAttackSound = Gdx.audio.newSound(Gdx.files.internal("sounds/tung-attack.mp3"));
         calcAttackSound = Gdx.audio.newSound(Gdx.files.internal("sounds/calc-attack.mp3"));
@@ -90,11 +95,13 @@ public class EnemyAssets {
         texture.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest);
     }
 
-    // BACKGROUNDS: Round 4 and 5 reuse Calculator's until you add new ones.
+    //Actually calling the background and implementing it using get
     public Texture getBackground(int round) {
         if (round == 1) return garlicBackground;
         if (round == 2) return tungBackground;
-        if (round >= 3 && round <= 5) return calcBackground;
+        if (round == 3) return calcBackground;
+        if (round == 4) return bookBackground;
+        if (round == 5) return nekBackground;
         throw new IllegalArgumentException("Unknown round: " + round);
     }
 
@@ -156,6 +163,8 @@ public class EnemyAssets {
         garlicBackground.dispose();
         tungBackground.dispose();
         calcBackground.dispose();
+        bookBackground.dispose();
+        nekBackground.dispose();
         insecureSword.dispose();
         for (Texture t : garlicSprites) t.dispose();
         for (Texture t : tungSprites) t.dispose();

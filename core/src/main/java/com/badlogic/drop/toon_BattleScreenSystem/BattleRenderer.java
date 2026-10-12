@@ -636,7 +636,7 @@ public class BattleRenderer {
         float screenWidth = Gdx.graphics.getWidth();
         float screenHeight = Gdx.graphics.getHeight();
 
-        float fontScale = screenHeight / 720f* 2.5f;
+        float fontScale = screenHeight / 720f * 2.5f;
         fontScale = Math.max(0.8f, Math.min(fontScale, 1000.0f));
         font.setColor(Color.BLACK);
         font.getData().setScale(fontScale);
@@ -679,32 +679,38 @@ public class BattleRenderer {
         Gdx.gl.glDisable(com.badlogic.gdx.graphics.GL20.GL_BLEND);
 
         // วาดข้อความในแต่ละช่อง
+
+        // Draw the four main menu options
         batch.begin();
 
         font.setColor(Color.BLACK);
         font.getData().setScale(fontScale);
 
-
-        font.draw(batch, "1. Slash Hit",
+        // Top-left
+        font.draw(batch, "1. Fight",
             menuX + gap + 8f,
             menuY + gap + cellHeight + gap + cellHeight / 2f + 5f);
 
-        font.draw(batch, "2. Sword and Shield",
+        // Top-right
+        font.draw(batch, "2. NOTE",
             menuX + gap + cellWidth + gap + 8f,
             menuY + gap + cellHeight + gap + cellHeight / 2f + 5f);
 
-        font.draw(batch, "3. Cure",
+        // Bottom-left
+        font.draw(batch, "3. Status",
             menuX + gap + 8f,
             menuY + gap + cellHeight / 2f + 5f);
 
-        font.draw(batch, "4. Sharpen",
+        // Bottom-right
+        font.draw(batch, "4. Surrender",
             menuX + gap + cellWidth + gap + 8f,
             menuY + gap + cellHeight / 2f + 5f);
 
         batch.end();
     }
 
-    public void dispose() {
+
+        public void dispose() {
         if (shieldTexture != null) {
             shieldTexture.dispose();
         }

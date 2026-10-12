@@ -120,161 +120,173 @@ public class BattleScreen extends ScreenAdapter {
         battleMessage = battleStatus("A wild Garlic Man appeared!");
     }
 
+    private enum MenuState {
+        MAIN_MENU,
+        FIGHT_MENU,
+        NOTE,
+        STATUS,
+        SURRENDER_CONFIRM
+    }
+
+    private MenuState menuState = MenuState.MAIN_MENU;
+
 
 
     @Override
-    public void render(float delta) {
+        public void render(float delta) {
 
-        // Show the victory message until Enter is pressed.
-        if (waitingForNextRound && Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
-            startNextRound();
-        }
-
-        // KEYBOARD CONTROLS: 1 uses Slash Hit. Keys 2-4 preview enemy sprites.
-        // These extra keys are temporary debugging shortcuts, not real moves.
-        if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_1)) {
-
-            // Only attack if it is the player's turn
-            if (!waitingForNextRound && !allRoundsWon
-                && battle.getTurnManager().isPlayerTurn()
-                && !battle.isBattleOver()) {
-
-                // Execute the attack using CJ's Battle System
-                String result = battle.playerTurn(splashHit);
+            // Show the victory message until Enter is pressed.
+            if (waitingForNextRound && Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
+                startNextRound();
+            }
 
 
-                // Start the visual effect only.
-                // Do not call playerTurn() again.
-                airSlashActive = true;
-                airSlashTimer = AIR_SLASH_DURATION;
-                int index = random.nextInt(slashSounds.length);
-                slashSounds[index].play();
-
-
-                showPlayerSword = false;
-                swordHideTimer = SWORD_HIDE_DURATION;
-
-                // Show the attack result in IntelliJ's console
-                System.out.println(result);
-                battleMessage = battleStatus("Insecure Sword used Slash Hit!");
-
-                // Display the current enemy's remaining HP
-                System.out.println(
-                    enemyDisplayName + " HP: " + enemy.getCurrentHp()
-                );
-
-                // Change the sprite depending on whether the current enemy survived
-
-                // If the enemy survives, play the Hurt animation
-                if (enemy.isAlive()) {
-                    currentSprite = assets.getHurt(round);
-                    animationTimer = 0.4f;
-
-                    // Schedule the enemy counterattack
-                    enemyTurnTimer = 1.5f; // Wait 1.5 seconds before the enemy counters
-                    enemyFadeTimer = ENEMY_FADE_DURATION;
-
-                } else {
-                    // The enemy is defeated, so no counterattack occurs
-                    currentSprite = assets.getDead(round);
-                    assets.stopMusic();
-                    assets.playEnemyDefeated();
-                    animationTimer = 0f;
-                    enemyTurnTimer = 0f;
-                    // ROUND PROGRESSION: let the player read the victory message.
-                    // We do NOT heal the sword; its current HP carries forward.
-                    if (round < 5) {
-                        waitingForNextRound = true;
-                        String nextName = EnemyFactory.getEnemyName(round + 1);
-                        battleMessage = battleStatus("YOU WIN! " + enemyDisplayName
-                            + " defeated!\nNEXT: " + nextName + " - Press ENTER");
-                    } else {
-                        // For this prototype, Calculator is the final opponent.
-                        allRoundsWon = true;
-                        battleMessage = battleStatus(
-                            "YOU WIN! Professor Nek defeated!\nPrototype complete!");
-                    }
-                }
-
+        // Handle menu navigation
+        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)
+            || Gdx.input.isKeyJustPressed(Input.Keys.BACKSPACE)) {
+            if (menuState == MenuState.SURRENDER_CONFIRM
+                || menuState == MenuState.NOTE
+                || menuState == MenuState.STATUS
+                || menuState == MenuState.FIGHT_MENU) {
+                menuState = MenuState.MAIN_MENU;
+                battleMessage = "Choose your action.";
             }
         }
 
-
-        if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_2)) {
-
-            // Defend only during the player's turn
-            if (!waitingForNextRound && !allRoundsWon
-                && battle.getTurnManager().isPlayerTurn()
-                && !battle.isBattleOver()) {
-
-                // Use the existing DefendMove through the Battle system
-                String result = battle.playerTurn(defendMove);
-                renderer.playShieldSound();
-                showShield = true;
-
-                System.out.println(result);
-                battleMessage = battleStatus("Insecure Sword used Defend!");
-
-                System.out.println(result);
-
-                // Show the defense message
-                battleMessage = battleStatus(
-                    "Insecure Sword used Defend!"
-                );
-
-                // Schedule the enemy's counterattack
-                if (enemy.isAlive() && !battle.isBattleOver()) {
-                    enemyTurnTimer = 1.5f;
-                }
+        if (menuState == MenuState.MAIN_MENU) {
+            if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_1)) {
+                menuState = MenuState.FIGHT_MENU;
+                battleMessage = "Choose your move!";
+            } else if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_2)) {
+                menuState = MenuState.NOTE;
+                battleMessage = "NOTE: Choose your strategy carefully. Press ESC to return.";
+            } else if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_3)) {
+                menuState = MenuState.STATUS;
+                battleMessage = "Player HP: " + player.getCurrentHp()
+                    + " | Enemy HP: " + enemy.getCurrentHp()
+                    + " | Press ESC to return.";
+            } else if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_4)) {
+                menuState = MenuState.SURRENDER_CONFIRM;
+                battleMessage = "Surrender? Press Y to confirm or N to cancel.";
             }
-        }
+        } else if (menuState == MenuState.NOTE) {
+            if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
+                menuState = MenuState.MAIN_MENU;
+                battleMessage = "Choose your action.";
+            }
+        } else if (menuState == MenuState.STATUS) {
+            if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
+                menuState = MenuState.MAIN_MENU;
+                battleMessage = "Choose your action.";
+            }
+        } else if (menuState == MenuState.SURRENDER_CONFIRM) {
+            if (Gdx.input.isKeyJustPressed(Input.Keys.Y)) {
+                menuState = MenuState.MAIN_MENU;
+                allRoundsWon = true;
+                assets.stopMusic();
+                battleMessage = "You surrendered. Game over.";
+            } else if (Gdx.input.isKeyJustPressed(Input.Keys.N)) {
+                menuState = MenuState.MAIN_MENU;
+                battleMessage = "You chose to continue fighting.";
+            }
+        } else if (menuState == MenuState.FIGHT_MENU) {
 
-        if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_3)) {
             if (!waitingForNextRound && !allRoundsWon
                 && battle.getTurnManager().isPlayerTurn()
                 && !battle.isBattleOver()
                 && player.isAlive()) {
 
-                String result = battle.playerTurn(healMove);
-                renderer.playHealSound();
-                System.out.println(result);
-                renderer.playHealAnimation();
+                if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_1)) {
+                    String result = battle.playerTurn(splashHit);
 
-                battleMessage = battleStatus(result);
+                    airSlashActive = true;
+                    airSlashTimer = AIR_SLASH_DURATION;
+                    int index = random.nextInt(slashSounds.length);
+                    slashSounds[index].play();
 
-                if (enemy.isAlive() && !battle.isBattleOver()) {
-                    enemyTurnTimer = 1.5f;
+                    showPlayerSword = false;
+                    swordHideTimer = SWORD_HIDE_DURATION;
+
+                    System.out.println(result);
+                    battleMessage = battleStatus("Insecure Sword used Slash Hit!");
+
+                    System.out.println(
+                        enemyDisplayName + " HP: " + enemy.getCurrentHp()
+                    );
+
+                    if (enemy.isAlive()) {
+                        currentSprite = assets.getHurt(round);
+                        animationTimer = 0.4f;
+                        enemyTurnTimer = 1.5f;
+                        enemyFadeTimer = ENEMY_FADE_DURATION;
+                    } else {
+                        currentSprite = assets.getDead(round);
+                        assets.stopMusic();
+                        assets.playEnemyDefeated();
+                        animationTimer = 0f;
+                        enemyTurnTimer = 0f;
+
+                        if (round < 5) {
+                            waitingForNextRound = true;
+                            String nextName = EnemyFactory.getEnemyName(round + 1);
+                            battleMessage = battleStatus(
+                                "YOU WIN! " + enemyDisplayName
+                                    + " defeated!\nNEXT: " + nextName + " - Press ENTER"
+                            );
+                        } else {
+                            allRoundsWon = true;
+                            battleMessage = battleStatus(
+                                "YOU WIN! Professor Nek defeated!\nPrototype complete!"
+                            );
+                        }
+                    }
+
+                    menuState = MenuState.MAIN_MENU;
+
+                } else if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_2)) {
+                    String result = battle.playerTurn(defendMove);
+                    renderer.playShieldSound();
+                    showShield = true;
+
+                    System.out.println(result);
+                    battleMessage = battleStatus("Insecure Sword used Defend!");
+
+                    if (enemy.isAlive() && !battle.isBattleOver()) {
+                        enemyTurnTimer = 1.5f;
+                    }
+
+                    menuState = MenuState.MAIN_MENU;
+
+                } else if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_3)) {
+                    String result = battle.playerTurn(healMove);
+                    renderer.playHealSound();
+                    System.out.println(result);
+                    renderer.playHealAnimation();
+
+                    battleMessage = battleStatus(result);
+
+                    if (enemy.isAlive() && !battle.isBattleOver()) {
+                        enemyTurnTimer = 1.5f;
+                    }
+
+                    menuState = MenuState.MAIN_MENU;
+
+                } else if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_4)) {
+                    String result = battle.playerTurn(specialSkillMove);
+                    renderer.playBuffAnimation();
+
+                    System.out.println(result);
+                    battleMessage = battleStatus(result);
+
+                    if (enemy.isAlive() && !battle.isBattleOver()) {
+                        enemyTurnTimer = 1.5f;
+                    }
+
+                    menuState = MenuState.MAIN_MENU;
                 }
             }
         }
 
-
-
-        if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_4)) {
-
-            if (!waitingForNextRound && !allRoundsWon
-                && battle.getTurnManager().isPlayerTurn()
-                && !battle.isBattleOver()
-                && player.isAlive()
-                ) {
-
-                String result = battle.playerTurn(specialSkillMove);
-                renderer.playBuffAnimation();
-
-
-                System.out.println(result);
-                battleMessage = battleStatus(result);
-
-
-                // ให้ศัตรูตอบโต้หลังใช้ Buff
-                if (enemy.isAlive() && !battle.isBattleOver()) {
-                    enemyTurnTimer = 1.5f;
-                }
-            }
-        }
-
-
-        //Count down only when an animation is active
         if (animationTimer > 0f) {
 
             //Subtract the time that passed since the previous frame

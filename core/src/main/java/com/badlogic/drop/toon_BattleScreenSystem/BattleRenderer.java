@@ -54,7 +54,12 @@ public class BattleRenderer {
     private static final float SHADOW_ALPHA = 0.22f;
     private static final float SHADOW_OFFSET_X = -5f;
     private static final float SHADOW_OFFSET_Y = -4f;
-    //shield
+
+    // NOTE attached to the sword
+    private Texture[] noteTextures = new Texture[5];
+    private int attachedNoteCount = 0;
+
+
     // Shield / Block
     private final Sound[] blockSounds = new Sound[3];
     private final Random random = new Random();
@@ -123,6 +128,18 @@ public class BattleRenderer {
             Gdx.files.internal("creatures/swordgethit.png")
         );
 
+        for (int i = 0; i < noteTextures.length; i++) {
+            String fileName = String.format(
+                "effect/OrangeNote%02d.png",
+                i + 1
+            );
+
+            noteTextures[i] = new Texture(
+                Gdx.files.internal(fileName)
+            );
+        }
+
+
         TextureRegion[][] frames = TextureRegion.split(
             healTexture,
             200,
@@ -143,6 +160,20 @@ public class BattleRenderer {
             Gdx.graphics.getHeight()
         );
     }
+
+    public boolean attachNoteToSword() {
+        if (attachedNoteCount >= noteTextures.length) {
+            return false; // NOTE ครบ 5 แผ่นแล้ว
+        }
+
+        attachedNoteCount++;
+        return true;
+    }
+
+    public void removeNoteFromSword() {
+        attachedNoteCount = 0;
+    }
+
 
     public void playBuffAnimation() {
         buffAnimationTimer = BUFF_ANIMATION_DURATION;
@@ -429,8 +460,6 @@ public class BattleRenderer {
                     false
                 );
 
-                batch.setColor(Color.WHITE);
-
 
                 // รีเซ็ตสีหลังวาด
                 batch.setColor(Color.WHITE);
@@ -487,10 +516,37 @@ public class BattleRenderer {
                     playerWidth * buffScale,
                     playerSize * buffScale
                 );
-            }
+                // Draw NOTE attached to the sword
+                // Draw all collected notes attached to the sword
+                float noteSize = playerSize * 0.12f;
 
-            // รีเซ็ตสี ป้องกันสีตกค้างไปยังรูปอื่น
-            batch.setColor(Color.WHITE);
+                float[][] notePositions = {
+                    {0.60f, 0.58f},
+                    {0.35f, 0.68f},
+                    {0.72f, 0.42f},
+                    {0.30f, 0.38f},
+                    {0.52f, 0.28f}
+                };
+
+                for (int i = 0; i < attachedNoteCount; i++) {
+                    float noteX = playerX
+                        + playerWidth * notePositions[i][0];
+
+                    float noteY = swordY
+                        + playerSize * notePositions[i][1];
+
+                    batch.draw(
+                        noteTextures[i],
+                        noteX,
+                        noteY,
+                        noteSize,
+                        noteSize
+                    );
+                }
+
+                // รีเซ็ตสี ป้องกันสีตกค้างไปยังรูปอื่น
+                batch.setColor(Color.WHITE);
+            }
         }
 
         if (playingHealAnimation) {
@@ -794,8 +850,8 @@ public class BattleRenderer {
 
             case "NOTE":
                 options = new String[]{
-                    "NOTE",
-                    "Use ESC to return",
+                    "Use NOTE",
+                    "Not Use",
                     "",
                     ""
                 };
@@ -888,7 +944,11 @@ public class BattleRenderer {
         if (playerHitTexture != null) {
             playerHitTexture.dispose();
         }
-
+        for (Texture texture : noteTextures) {
+            if (texture != null) {
+                texture.dispose();
+            }
+        }
 
     }
 }

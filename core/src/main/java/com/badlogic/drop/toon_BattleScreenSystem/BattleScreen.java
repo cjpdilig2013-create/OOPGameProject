@@ -143,6 +143,7 @@ public class BattleScreen extends ScreenAdapter {
         MAIN_MENU,
         FIGHT_MENU,
         NOTE,
+        NOTE_CONFIRM,
         STATUS,
         SURRENDER_CONFIRM
     }
@@ -150,6 +151,7 @@ public class BattleScreen extends ScreenAdapter {
     private MenuState menuState = MenuState.MAIN_MENU;
 
     private int selectedChoice = 0;
+    private int selectedNoteChoice = 0;
 
 
     @Override
@@ -167,6 +169,7 @@ public class BattleScreen extends ScreenAdapter {
             if (menuState == MenuState.SURRENDER_CONFIRM
                 || menuState == MenuState.NOTE
                 || menuState == MenuState.STATUS
+                || menuState == MenuState.NOTE_CONFIRM
                 || menuState == MenuState.FIGHT_MENU) {
                 menuState = MenuState.MAIN_MENU;
                 battleMessage = "Choose your action.";
@@ -199,9 +202,9 @@ public class BattleScreen extends ScreenAdapter {
                             break;
 
                         case 1:
-                            menuState = MenuState.NOTE;
-                            battleMessage =
-                                "NOTE: Choose your strategy carefully. Press ESC to return.";
+                            menuState = MenuState.NOTE_CONFIRM;
+                            selectedNoteChoice = 0;
+                            battleMessage = "Use NOTE?";
                             break;
 
                         case 2:
@@ -219,13 +222,33 @@ public class BattleScreen extends ScreenAdapter {
                             break;
                     }
                 }
-            } else if (menuState == MenuState.NOTE) {
+
+            } else if (menuState == MenuState.NOTE_CONFIRM) {
+                if (Gdx.input.isKeyJustPressed(Input.Keys.LEFT)
+                    || Gdx.input.isKeyJustPressed(Input.Keys.RIGHT)) {
+                    selectedNoteChoice = 1 - selectedNoteChoice;
+                    playButtonSound();
+                }
+
                 if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
+                    playButtonSound();
+
+                    if (selectedNoteChoice == 0) {
+                        if (renderer.attachNoteToSword()) {
+                            battleMessage = "You used NOTE!";
+                        } else {
+                            battleMessage = "You have no NOTE left!";
+                        }
+                    } else {
+                        battleMessage = "You chose not to use NOTE.";
+                    }
+
+
                     menuState = MenuState.MAIN_MENU;
                     selectedChoice = 1;
-                    battleMessage = "Choose your action.";
                 }
-            } else if (menuState == MenuState.STATUS) {
+
+                } else if (menuState == MenuState.STATUS) {
                 if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
                     menuState = MenuState.MAIN_MENU;
                     selectedChoice = 2;
@@ -604,6 +627,7 @@ public class BattleScreen extends ScreenAdapter {
     // against Garlic Man or Tung Tung Man remains lost against Calculator.
     // This also leaves room to add your healing mechanic later.
     private void startNextRound() {
+        renderer.removeNoteFromSword();
         showShield = false;
         player.removeAttackBuff();
         round++; // 1 -> 2 -> 3

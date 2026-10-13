@@ -16,6 +16,7 @@ import com.badlogic.drop.ot_MoveSkillsSystem.HealMove;
 import com.badlogic.drop.ot_MoveSkillsSystem.SpecialSkillMove;
 import com.badlogic.drop.ot_MoveSkillsSystem.ChargeMove;
 import com.badlogic.gdx.Game;
+import com.badlogic.gdx.graphics.Color;
 
 // OOP Inheritance: BattleScreen extends ScreenAdapter.
 // This class controls the game's flow, not how each image is drawn.
@@ -84,6 +85,10 @@ public class BattleScreen extends ScreenAdapter {
     private boolean playerDefeated = false;
     private float defeatTimer = 0f;
     private static final float DEFEAT_DELAY = 2.0f;
+
+    private float playerDeathFadeTimer = 0f;
+    private static final float PLAYER_DEATH_FADE_DURATION = 1.5f;
+    private boolean playerDying = false;
 
     // Show the final boss defeat before the victory screen.
     private boolean victoryPending = false;
@@ -197,7 +202,7 @@ public class BattleScreen extends ScreenAdapter {
             renderer.render(
                 assets, currentSprite, player, enemy, round,
                 battleMessage, showPlayerSword, airSlashActive,
-                1f, false, showShield
+                1f, false, showShield, 1f
             );
             return;
         }
@@ -298,11 +303,19 @@ public class BattleScreen extends ScreenAdapter {
                 }
 
             } else if (menuState == MenuState.NOTE_CONFIRM) {
+        if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
             if (selectedNoteChoice == 0) {
                 if (renderer.getAttachedNoteCount() < round) {
                     renderer.attachNoteToSword();
 
-                    battleMessage = "You attached a NOTE!";
+                    battleMessage = battleStatus("You attached a NOTE!");
+
+                    // จบเทิร์นผู้เล่น แล้วรอให้ศัตรูโจมตี
+                    menuState = MenuState.MAIN_MENU;
+                    enemyTurnTimer = 1.5f;
+                    waitingForEnemyAnimation = false;
+                    animationTimer = 0f;
+                    String result = battle.endPlayerTurn();
                 } else {
                     battleMessage = "No more NOTE available this round!";
                 }
@@ -312,6 +325,9 @@ public class BattleScreen extends ScreenAdapter {
 
             menuState = MenuState.MAIN_MENU;
             selectedChoice = 1;
+
+
+            }
         } else if (menuState == MenuState.STATUS) {
                 if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
                     menuState = MenuState.MAIN_MENU;
@@ -382,13 +398,16 @@ public class BattleScreen extends ScreenAdapter {
         // Wait before the current enemy performs its counterattack
         if (enemyTurnTimer > 0f) {
 
+
             // Count down using the time between frames
             enemyTurnTimer -= delta;
 
             // Only attack once the timer reaches zero
             if (enemyTurnTimer <= 0f) {
 
+
                 enemyTurnTimer = 0f;
+
 
                 // Check that the current enemy is alive and it is its turn
 
@@ -401,7 +420,13 @@ public class BattleScreen extends ScreenAdapter {
                     enemyMove = enemyMoves[random.nextInt(enemyMoves.length)];
                 }
 
+
+                System.out.println("Turn before enemy action: "
+                    + battle.getTurnManager().getCurrentTurn());
+
                 String result = battle.enemyTurn(enemyMove);
+
+                System.out.println("Enemy result: " + result);
                 boolean enemyIsCharging = result.contains("is charging up");
 
                 if (enemyIsCharging) {
@@ -448,13 +473,26 @@ public class BattleScreen extends ScreenAdapter {
                     animationTimer = 0.75f;
                     waitingForEnemyAnimation = true;
                 }
+
                 if (!player.isAlive()) {
                     playerDefeated = true;
-                    defeatTimer = DEFEAT_DELAY;
+                    playerDying = true;
+
+                    // ค้างภาพตอนโดนโจมตี แล้วเริ่ม Fade
+                    playerDeathFadeTimer = PLAYER_DEATH_FADE_DURATION;
+                    defeatTimer = PLAYER_DEATH_FADE_DURATION;
+
                     waitingToUseMove = false;
                     enemyTurnTimer = 0f;
+                    waitingForEnemyAnimation = false;
+                    animationTimer = 0f;
+
+                    // ใช้ภาพ Hurt ค้างไว้ ไม่กลับไป Idle
+                    currentSprite = assets.getHurt(round);
+
                     battleMessage = battleStatus("Insecure Sword fainted!");
                 }
+
 
                 System.out.println(
                     "Sword HP: " + player.getCurrentHp()
@@ -532,6 +570,18 @@ public class BattleScreen extends ScreenAdapter {
 
         renderer.setShowAttackMenu(canShowMenu);
 
+        float playerDeathAlpha = 1f;
+
+        if (playerDying) {
+            playerDeathFadeTimer -= delta;
+
+            playerDeathAlpha = Math.max(
+                0f,
+                playerDeathFadeTimer / PLAYER_DEATH_FADE_DURATION
+            );
+        }
+
+
         renderer.render(
             assets,
             currentSprite,
@@ -539,8 +589,12 @@ public class BattleScreen extends ScreenAdapter {
             enemy,
             round,
             battleMessage,
-            showPlayerSword, airSlashActive, enemyAlpha,
-            playerHitFlash, showShield
+            showPlayerSword,
+            airSlashActive,
+            enemyAlpha,
+            playerHitFlash,
+            showShield,
+            playerDeathAlpha
         );
 
 

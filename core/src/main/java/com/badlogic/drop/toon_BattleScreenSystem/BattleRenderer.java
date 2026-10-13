@@ -237,7 +237,8 @@ public class BattleRenderer {
                        String battleMessage,
                        boolean showPlayer, boolean showAirSlash,
                        float enemyAlpha, boolean playerHitFlash,
-                       boolean showShield) {
+                       boolean showShield,
+                       float playerDeathAlpha) {
         Texture background = assets.getBackground(round);
         Texture insecureSword = assets.getSword();
         // RENDERING OVERVIEW
@@ -440,14 +441,17 @@ public class BattleRenderer {
         float hitWidth = playerWidth * hitSpriteScale;
         float hitHeight = playerSize * hitSpriteScale;
 
-        if (showPlayer) {
+        if (showPlayer || playerDeathAlpha < 1f) {
             float swordY = playerY + swordOffsetY;
 
-            if (playerHitFlash) {
+            if (playerHitFlash || playerDeathAlpha < 1f) {
                 // when hit
                 batch.setColor(1f, 1f, 1f, 0.75f);
                 float hitRotation = +12f; // เอียง 12 องศา
-                batch.setColor(1f, 1f, 1f, 0.8f);
+                batch.setColor(
+                    1f, 1f, 1f,
+                    0.8f * playerDeathAlpha
+                );
 
                 batch.draw(
                     playerHitTexture,

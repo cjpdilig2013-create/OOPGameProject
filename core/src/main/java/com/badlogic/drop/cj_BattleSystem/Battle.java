@@ -56,7 +56,24 @@ public class Battle {
     }
 
 
-//--------------------------------------------------------------------------------------------------------------------------------------
+    public String endPlayerTurn() {
+        turnManager.switchToEnemy();
+
+        if (isBattleOver()) {
+            return "Battle is already over.";
+        }
+
+        if (!turnManager.isPlayerTurn()) {
+            return "It is not the player's turn.";
+        }
+
+        turnManager.switchToEnemy();
+        return "Player ended their turn.";
+    }
+
+
+
+    //--------------------------------------------------------------------------------------------------------------------------------------
     //Move turn (Player) (We will use MoveSkillsSystem Import)
     //This is where the player attacks and if the enemy is still alive then switch to the enemy. If not then the battle is finished
 public String playerTurn(Move move) {

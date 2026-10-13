@@ -533,11 +533,11 @@ public class BattleRenderer {
                 float noteSize = playerSize * 0.12f;
 
                 float[][] notePositions = {
-                    {0.60f, 0.58f},
-                    {0.35f, 0.68f},
-                    {0.72f, 0.42f},
-                    {0.30f, 0.38f},
-                    {0.52f, 0.28f}
+                    {0.50f, 0.2f},
+                    {0.3f, 0.5f},
+                    {0.54f, 0.32f},
+                    {0.35f, 0.7f},
+                    {0.57f, 0.56f}
                 };
 
                 for (int i = 0; i < attachedNoteCount; i++) {
@@ -644,6 +644,10 @@ public class BattleRenderer {
             );
 
             dialogueBox.setText(battleMessage);
+
+        if (!"STATUS".equals(currentMenu)) {
+            dialogueBox.setText(battleMessage);
+
             shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
             dialogueBox.drawShapes(shapeRenderer);
             shapeRenderer.end();
@@ -658,14 +662,19 @@ public class BattleRenderer {
             dialogueBox.drawText(batch, dialogueFont);
 
             batch.end();
+        }
 
-            // Draw HP bars
+
+        // Draw HP bars
 
         // Draw attack menu only when enabled
-        if (showAttackMenu) {
+        if (showAttackMenu && !"STATUS".equals(currentMenu)) {
             drawAttackMenu();
         }
 
+        if ("STATUS".equals(currentMenu)) {
+            drawStatusPanel(player, enemy);
+        }
     }
 
 
@@ -758,8 +767,8 @@ public class BattleRenderer {
     // DIALOGUE LOCATION: LibGDX coordinates start at bottom-left, so subtracting
     // the box height from screenHeight places the box at the TOP-left corner.
     private void updateDialoguePosition(int screenWidth, int screenHeight) {
-        float width = screenWidth * 0.50f;
-        float height = screenHeight * 0.30f;
+        float width = screenWidth * 0.35f;
+        float height = screenHeight * 0.25f;
         dialogueBox = new DialogueBox(20f, screenHeight - height - 20f, width, height);
     }
 
@@ -796,7 +805,8 @@ public class BattleRenderer {
 
         boolean canHighlight =
             currentMenu.equals("MAIN_MENU")
-                || currentMenu.equals("FIGHT_MENU");
+                || currentMenu.equals("FIGHT_MENU")
+                || currentMenu.equals("SURRENDER_CONFIRM");
 
         // 1. Draw the translucent menu background
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
@@ -927,6 +937,103 @@ public class BattleRenderer {
 
         batch.end();
     }
+
+
+    private void drawStatusPanel(PlayerCreature player, Enemy enemy) {
+        float screenWidth = Gdx.graphics.getWidth();
+        float screenHeight = Gdx.graphics.getHeight();
+
+        float panelWidth = screenWidth * 0.50f;
+        float panelHeight = screenHeight * 0.48f;
+
+        float panelX = (screenWidth - panelWidth) / 2f;
+        float panelY = (screenHeight - panelHeight) / 2f;
+
+        // Draw panel background
+        Gdx.gl.glEnable(
+            com.badlogic.gdx.graphics.GL20.GL_BLEND
+        );
+        Gdx.gl.glBlendFunc(
+            com.badlogic.gdx.graphics.GL20.GL_SRC_ALPHA,
+            com.badlogic.gdx.graphics.GL20.GL_ONE_MINUS_SRC_ALPHA
+        );
+
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+        shapeRenderer.setColor(0.08f, 0.10f, 0.16f, 0.95f);
+        shapeRenderer.rect(
+            panelX, panelY, panelWidth, panelHeight
+        );
+        shapeRenderer.end();
+
+        // Draw panel border
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+        shapeRenderer.setColor(Color.GOLD);
+        shapeRenderer.rect(
+            panelX, panelY, panelWidth, panelHeight
+        );
+        shapeRenderer.end();
+
+        Gdx.gl.glDisable(
+            com.badlogic.gdx.graphics.GL20.GL_BLEND
+        );
+
+        // Draw status text
+        float textScale = Math.max(
+            1f,
+            Math.min(screenHeight / 720f * 1.3f, 2f)
+        );
+
+        font.getData().setScale(textScale);
+        font.setColor(Color.WHITE);
+
+        String playerText =
+            "PLAYER: " + player.getName()
+                + "\nLevel: " + player.getLevel()
+                + "\nHP: " + player.getCurrentHp()
+                + " / " + player.getMaxHp()
+                + "\nAttack: " + player.getAttack()
+                + "\nDefense: " + player.getDefense();
+
+        String enemyText =
+            "ENEMY: " + enemy.getName()
+                + "\nLevel: " + enemy.getLevel()
+                + "\nHP: " + enemy.getCurrentHp()
+                + " / " + enemy.getMaxHp()
+                + "\nAttack: " + enemy.getAttack()
+                + "\nDefense: " + enemy.getDefense();
+
+        batch.begin();
+
+        font.draw(
+            batch,
+            "BATTLE STATUS",
+            panelX + 20f,
+            panelY + panelHeight - 25f
+        );
+
+        font.draw(
+            batch,
+            playerText,
+            panelX + 20f,
+            panelY + panelHeight - 65f
+        );
+
+        font.draw(
+            batch,
+            enemyText,
+            panelX + panelWidth * 0.52f,
+            panelY + panelHeight - 65f
+        );
+
+        font.draw(batch, "Press ENTER or ESC to return",
+            panelX + 20f, panelY + 35f);
+
+        batch.end();
+
+        // Restore the normal font color
+        font.setColor(Color.BLACK);
+    }
+
 
 
 

@@ -134,7 +134,7 @@ public class BattleScreen extends ScreenAdapter {
         battle = new Battle(player, enemy);
         battle.startBattle();
         //1 move
-        splashHit = new DamageMove("Slash Hit", 10,
+        splashHit = new DamageMove("Slash Hit", 1000,
             "Insecure Sword attacks Garlic Man!");
 
         //2 move
@@ -159,7 +159,7 @@ public class BattleScreen extends ScreenAdapter {
         // Create the enemy's two moves
         enemyMoves = EnemyFactory.createEnemyMoves(round);
         enemyMove = enemyMoves[0];
-        battleMessage = battleStatus("A wild Garlic Man appeared!");
+        battleMessage = "A wild Garlic Man appeared!";
 
     }
     private void playButtonSound() {
@@ -243,7 +243,8 @@ public class BattleScreen extends ScreenAdapter {
             // Navigate the 2x2 menu with arrow keys.
 
             if ((menuState == MenuState.MAIN_MENU
-                || menuState == MenuState.FIGHT_MENU)
+                || menuState == MenuState.FIGHT_MENU
+                || menuState == MenuState.SURRENDER_CONFIRM)
                 && !waitingForNextRound
                 && !allRoundsWon
                 && !waitingToUseMove
@@ -255,7 +256,11 @@ public class BattleScreen extends ScreenAdapter {
                 && (menuState != MenuState.FIGHT_MENU
                 || battle.getTurnManager().isPlayerTurn())) {
 
-                updateChoiceNavigation();
+                if (menuState == MenuState.SURRENDER_CONFIRM) {
+                    updateSurrenderNavigation();
+                } else {
+                    updateChoiceNavigation();
+                }
             }
 
 
@@ -286,18 +291,17 @@ public class BattleScreen extends ScreenAdapter {
                             battleMessage = "Use NOTE?";
                             break;
 
+
                         case 2:
                             menuState = MenuState.STATUS;
-                            battleMessage =
-                                "Player HP: " + player.getCurrentHp()
-                                    + " | Enemy HP: " + enemy.getCurrentHp()
-                                    + " | Press ESC to return.";
+                            battleMessage = "Viewing battle status.";
                             break;
+
 
                         case 3:
                             menuState = MenuState.SURRENDER_CONFIRM;
-                            battleMessage =
-                                "Surrender? Press Y to confirm or N to cancel.";
+                            selectedChoice = 0;
+                            battleMessage = "Are you sure you want to surrender?";
                             break;
                     }
                 }
@@ -334,18 +338,22 @@ public class BattleScreen extends ScreenAdapter {
                     selectedChoice = 2;
                     battleMessage = "Choose your action.";
                 }
+
             } else if (menuState == MenuState.SURRENDER_CONFIRM) {
-                if (Gdx.input.isKeyJustPressed(Input.Keys.Y)) {
-                    showLoseScreen();
-                    return;
+                if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
+                    playButtonSound();
 
-                } else if (Gdx.input.isKeyJustPressed(Input.Keys.N)) {
-                    menuState = MenuState.MAIN_MENU;
-                    selectedChoice = 3;
-                    battleMessage = "You chose to continue fighting.";
+                    if (selectedChoice == 0) {
+                        showLoseScreen();
+                        return;
+                    } else {
+                        menuState = MenuState.MAIN_MENU;
+                        selectedChoice = 3;
+                        battleMessage = "You chose to continue fighting.";
+                    }
                 }
-
-            } else
+            }
+            else
             if (menuState == MenuState.FIGHT_MENU) {
                 if (!waitingForNextRound
                     && !allRoundsWon
@@ -426,6 +434,8 @@ public class BattleScreen extends ScreenAdapter {
 
                 String result = battle.enemyTurn(enemyMove);
 
+                System.out.println("DEBUG ENEMY RESULT: [" + result + "]");
+
                 System.out.println("Enemy result: " + result);
                 boolean enemyIsCharging = result.contains("is charging up");
 
@@ -458,7 +468,7 @@ public class BattleScreen extends ScreenAdapter {
                 System.out.println(result);
 
                 // Detect whether this turn was spent charging.
-                battleMessage = battleStatus(result);
+                battleMessage = result;
 
                 if (enemyIsCharging) {
                     // Play debuff sound when the enemy starts charging.
@@ -629,6 +639,16 @@ public class BattleScreen extends ScreenAdapter {
             }
         }
     }
+
+
+    private void updateSurrenderNavigation() {
+        if (Gdx.input.isKeyJustPressed(Input.Keys.LEFT)
+            || Gdx.input.isKeyJustPressed(Input.Keys.RIGHT)) {
+            selectedChoice = (selectedChoice == 0) ? 1 : 0;
+            playButtonSound();
+        }
+    }
+
 
 
     // RESIZE: tell renderer to adjust its projection + top-left dialogue position.
@@ -822,15 +842,11 @@ public class BattleScreen extends ScreenAdapter {
 
     // DIALOGUE TEXT: show the last action and both HP totals.
     // The message stays visible until the next battle action.
+
     private String battleStatus(String action) {
-        String enemyHp = enemyDisplayName + " HP: "
-            + enemy.getCurrentHp() + "/" + enemy.getMaxHp();
-
-        String playerHp = "Sword HP: "
-            + player.getCurrentHp() + "/" + player.getMaxHp();
-
-        return action + "\n" + enemyHp + "    |    " + playerHp;
+        return action;
     }
+
 
 
     private void showLoseScreen() {

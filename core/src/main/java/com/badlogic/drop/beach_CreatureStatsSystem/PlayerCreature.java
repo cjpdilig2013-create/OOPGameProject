@@ -38,4 +38,20 @@ public class PlayerCreature extends Creature {
             heal(10); // fill the extra max HP, but never revive a fainted creature
         }
     }
+
+    private boolean fireBuffActive = false;
+
+    public void activateFireBuff() {
+        fireBuffActive = true;
+    }
+
+    public boolean isFireBuffActive() {
+        return fireBuffActive;
+    }
+
+    public void removeFireBuff() {
+        fireBuffActive = false;
+    }
+
+
 }

@@ -530,14 +530,15 @@ public class BattleRenderer {
                 );
                 // Draw NOTE attached to the sword
                 // Draw all collected notes attached to the sword
+
                 float noteSize = playerSize * 0.12f;
 
                 float[][] notePositions = {
-                    {0.50f, 0.2f},
                     {0.3f, 0.5f},
                     {0.54f, 0.32f},
                     {0.35f, 0.7f},
-                    {0.57f, 0.56f}
+                    {0.42f, 0.2f},
+                    {0.445f, 0.41f}
                 };
 
                 for (int i = 0; i < attachedNoteCount; i++) {
@@ -547,14 +548,20 @@ public class BattleRenderer {
                     float noteY = swordY
                         + playerSize * notePositions[i][1];
 
+                    // NOTE ชิ้นที่ 5 ใช้ขนาดแยกจากชิ้นอื่น
+                    float currentNoteSize = (i == 4)
+                        ? playerSize * 0.17f
+                        : noteSize;
+
                     batch.draw(
                         noteTextures[i],
                         noteX,
                         noteY,
-                        noteSize,
-                        noteSize
+                        currentNoteSize,
+                        currentNoteSize
                     );
                 }
+
 
                 // รีเซ็ตสี ป้องกันสีตกค้างไปยังรูปอื่น
                 batch.setColor(Color.WHITE);

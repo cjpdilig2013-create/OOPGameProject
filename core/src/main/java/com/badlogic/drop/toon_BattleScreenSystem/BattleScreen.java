@@ -134,7 +134,7 @@ public class BattleScreen extends ScreenAdapter {
         battle = new Battle(player, enemy);
         battle.startBattle();
         //1 move
-        splashHit = new DamageMove("Slash Hit", 1000,
+        splashHit = new DamageMove("Slash Hit", 10,
             "Insecure Sword attacks Garlic Man!");
 
         //2 move
@@ -181,6 +181,9 @@ public class BattleScreen extends ScreenAdapter {
 
     private int selectedChoice = 0;
     private int selectedNoteChoice = 0;
+
+    private boolean typingNote = false;
+    private StringBuilder noteInput = new StringBuilder();
 
 
 
@@ -306,32 +309,29 @@ public class BattleScreen extends ScreenAdapter {
                     }
                 }
 
+
             } else if (menuState == MenuState.NOTE_CONFIRM) {
-        if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
-            if (selectedNoteChoice == 0) {
-                if (renderer.getAttachedNoteCount() < round) {
-                    renderer.attachNoteToSword();
+                if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
+                    if (selectedNoteChoice == 0) {
+                        if (renderer.getAttachedNoteCount() < round) {
 
-                    battleMessage = battleStatus("You attached a NOTE!");
+                            // Open the text input dialog.
+                            menuState = MenuState.MAIN_MENU;
 
-                    // จบเทิร์นผู้เล่น แล้วรอให้ศัตรูโจมตี
-                    menuState = MenuState.MAIN_MENU;
-                    enemyTurnTimer = 1.5f;
-                    waitingForEnemyAnimation = false;
-                    animationTimer = 0f;
-                    String result = battle.endPlayerTurn();
-                } else {
-                    battleMessage = "No more NOTE available this round!";
+                            startNoteTyping();
+
+                        } else {
+                            battleMessage = "No more NOTE available this round!";
+                            menuState = MenuState.MAIN_MENU;
+                        }
+                    } else {
+                        battleMessage = "You chose not to use NOTE.";
+                        menuState = MenuState.MAIN_MENU;
+                    }
+
+                    selectedChoice = 1;
                 }
-            } else {
-                battleMessage = "You chose not to use NOTE.";
-            }
 
-            menuState = MenuState.MAIN_MENU;
-            selectedChoice = 1;
-
-
-            }
         } else if (menuState == MenuState.STATUS) {
                 if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
                     menuState = MenuState.MAIN_MENU;
@@ -590,6 +590,10 @@ public class BattleScreen extends ScreenAdapter {
                 playerDeathFadeTimer / PLAYER_DEATH_FADE_DURATION
             );
         }
+        if (typingNote) {
+            battleMessage = "Type a magic word and press Enter: "
+                + noteInput;
+        }
 
 
         renderer.render(
@@ -609,6 +613,55 @@ public class BattleScreen extends ScreenAdapter {
 
 
     }
+
+    private void startNoteTyping() {
+        typingNote = true;
+        noteInput.setLength(0);
+
+        Gdx.input.setInputProcessor(new com.badlogic.gdx.InputAdapter() {
+            @Override
+            public boolean keyTyped(char character) {
+                if (!typingNote) {
+                    return false;
+                }
+
+                if (character == '\n' || character == '\r') {
+                    typingNote = false;
+                    Gdx.input.setInputProcessor(null);
+                    useNoteWord(noteInput.toString());
+                    return true;
+                }
+
+                if (character == '\b') {
+                    int length = noteInput.length();
+                    if (length > 0) {
+                        noteInput.deleteCharAt(length - 1);
+                    }
+                    return true;
+                }
+
+                if (!Character.isISOControl(character)) {
+                    noteInput.append(character);
+                }
+
+                return true;
+            }
+
+            @Override
+            public boolean keyDown(int keycode) {
+                if (keycode == Input.Keys.ESCAPE) {
+                    typingNote = false;
+                    Gdx.input.setInputProcessor(null);
+                    battleMessage = "NOTE cancelled.";
+                    return true;
+                }
+                return false;
+            }
+        });
+
+        battleMessage = "Type a magic word and press Enter: ";
+    }
+
 
     private void updateChoiceNavigation() {
         if (Gdx.input.isKeyJustPressed(Input.Keys.LEFT)) {
@@ -682,6 +735,32 @@ public class BattleScreen extends ScreenAdapter {
             buttonSound.dispose();
         }
     }
+
+
+    private void useNoteWord(String text) {
+        if (!renderer.attachNoteToSword()) {
+            battleMessage = "No more NOTE available!";
+            return;
+        }
+
+        if (text != null && "Fire".equalsIgnoreCase(text.trim())) {
+            player.activateFireBuff();
+            battleMessage = "The NOTE awakened! Fire power activated!";
+        } else {
+            battleMessage = "The NOTE accepted: " + text;
+        }
+
+        // NOTE consumes the player's turn.
+        if (enemy.isAlive() && !battle.isBattleOver()) {
+            enemyTurnTimer = 1.5f;
+            waitingForEnemyAnimation = false;
+            animationTimer = 0f;
+            battle.endPlayerTurn();
+        }
+    }
+
+
+
 
     private void executeSelectedMove() {
         String result;
@@ -813,6 +892,7 @@ public class BattleScreen extends ScreenAdapter {
         renderer.removeNoteFromSword();
         showShield = false;
         player.removeAttackBuff();
+        player.removeFireBuff();
         round++; // 1 -> 2 ->
         waitingForNextRound = false; // Allow normal attack input again.
         enemyDisplayName = EnemyFactory.getEnemyName(round);

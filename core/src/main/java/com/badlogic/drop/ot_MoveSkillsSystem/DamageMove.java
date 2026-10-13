@@ -1,6 +1,8 @@
 package com.badlogic.drop.ot_MoveSkillsSystem;
 
 import com.badlogic.drop.beach_CreatureStatsSystem.Creature;
+import com.badlogic.drop.beach_CreatureStatsSystem.PlayerCreature;
+
 
 public class DamageMove extends Move {
 
@@ -26,9 +28,17 @@ public class DamageMove extends Move {
         damage = Math.max(0, damage);
 
         // Apply 50% attack buff if active
+        // Apply the existing attack buff first
         damage = user.getBuffedDamage(damage);
 
+        // Apply Fire NOTE: double damage
+        if (user instanceof PlayerCreature
+            && ((PlayerCreature) user).isFireBuffActive()) {
+            damage *= 2;
+        }
+
         target.takeDamage(damage);
+
 
         lastResult = user.getName() + " used " + getName()
             + "!"

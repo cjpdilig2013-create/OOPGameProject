@@ -11,7 +11,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 //BattleMenu = the buttons at the bottom-right of the battle screen
-//Example: FIGHT  BAG  PARTY  RUN
 //It only draws buttons and tells the listener which button number was clicked.
 //(BattleScreen decides what that number means)
 public class BattleMenu {

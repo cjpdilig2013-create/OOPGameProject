@@ -7,7 +7,7 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.utils.Align;
 
 //DialogueBox = the text box at the bottom-left of the battle screen
-//Example: "What will Liquid Cat do?"
+//Example: "What will the sword do?"
 public class DialogueBox {
 
     private final float x, y, width, height;

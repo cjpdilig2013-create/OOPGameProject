@@ -16,10 +16,10 @@ import com.badlogic.drop.ot_MoveSkillsSystem.HealMove;
 import com.badlogic.drop.ot_MoveSkillsSystem.SpecialSkillMove;
 import com.badlogic.drop.ot_MoveSkillsSystem.ChargeMove;
 
-// OOP Inheritance: BattleScreen extends ScreenAdapter.
-// This class controls the game's flow, not how each image is drawn.
+//OOP Inheritance: BattleScreen extends ScreenAdapter.
+//This class controls the game's flow, not how each image is drawn.
 public class BattleScreen extends ScreenAdapter {
-    // HELPER CLASSES: separate rendering, enemy creation, and file loading.
+    //HELPER CLASSES: separate rendering, enemy creation, and file loading.
     private BattleRenderer renderer;
     private EnemyAssets assets;
     private Texture currentSprite;
@@ -54,7 +54,7 @@ public class BattleScreen extends ScreenAdapter {
     private float enemyBuffScale = 1.0f;
     private float enemyRedFlashTimer = 0f;
 
-    // Reuse the existing battle system
+    //Reuse the existing battle system
     private PlayerCreature player;
     private Enemy enemy;
     private Battle battle;
@@ -83,20 +83,20 @@ public class BattleScreen extends ScreenAdapter {
         debuffSound = Gdx.audio.newSound(
             Gdx.files.internal("sounds/debuff01.mp3")
         );
-        // Create renderer + assets only once when this battle screen opens.
+        //Create renderer + assets only once when this battle screen opens.
         renderer = new BattleRenderer();
         assets = new EnemyAssets();
         assets.playMusic(round);
         currentSprite = assets.getIdle(round);
 
-        // PLAYER STATS: create Insecure Sword only once so HP carries between all rounds (healing comes later).
+        //PLAYER STATS: create Insecure Sword only once so HP carries between all rounds (healing comes later).
         player = new PlayerCreature("Insecure Sword", 100, 20, 15, 18);
         // EnemyFactory centralizes enemy stats and moves.
 
         battle = new Battle(player, enemy);
         battle.startBattle();
         //1 move
-        splashHit = new DamageMove("Splash Hit", 10,
+        splashHit = new DamageMove("Splash Hit", 1000,
             "Insecure Sword attacks Garlic Man!");
 
         //2 move
@@ -114,7 +114,7 @@ public class BattleScreen extends ScreenAdapter {
         );
 
         specialSkillMove = new SpecialSkillMove();
-        // Create the enemy's two moves
+        //Create the enemy's two moves
         enemyMoves = EnemyFactory.createEnemyMoves(round);
         enemyMove = enemyMoves[0];
         battleMessage = battleStatus("A wild Garlic Man appeared!");
@@ -125,13 +125,13 @@ public class BattleScreen extends ScreenAdapter {
     @Override
     public void render(float delta) {
 
-        // Show the victory message until Enter is pressed.
+        //Show the victory message until Enter is pressed.
         if (waitingForNextRound && Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
             startNextRound();
         }
 
-        // KEYBOARD CONTROLS: 1 uses Splash Hit. Keys 2-4 preview enemy sprites.
-        // These extra keys are temporary debugging shortcuts, not real moves.
+        //KEYBOARD CONTROLS: 1 uses Slash Hit. Keys 2-4 preview enemy sprites.
+        //These extra keys are temporary debugging shortcuts, not real moves.
         if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_1)) {
 
             // Only attack if it is the player's turn
@@ -139,12 +139,12 @@ public class BattleScreen extends ScreenAdapter {
                 && battle.getTurnManager().isPlayerTurn()
                 && !battle.isBattleOver()) {
 
-                // Execute the attack using CJ's Battle System
+                //Execute the attack using CJ's Battle System
                 String result = battle.playerTurn(splashHit);
 
 
-                // Start the visual effect only.
-                // Do not call playerTurn() again.
+                //Start the visual effect only.
+                //Do not call playerTurn() again.
                 airSlashActive = true;
                 airSlashTimer = AIR_SLASH_DURATION;
                 int index = random.nextInt(slashSounds.length);
@@ -154,42 +154,41 @@ public class BattleScreen extends ScreenAdapter {
                 showPlayerSword = false;
                 swordHideTimer = SWORD_HIDE_DURATION;
 
-                // Show the attack result in IntelliJ's console
+                //Show the attack result in IntelliJ's console
                 System.out.println(result);
                 battleMessage = battleStatus("Insecure Sword used Splash Hit!");
 
-                // Display the current enemy's remaining HP
+                //Display the current enemy's remaining HP
                 System.out.println(
                     enemyDisplayName + " HP: " + enemy.getCurrentHp()
                 );
 
-                // Change the sprite depending on whether the current enemy survived
 
-                // If the enemy survives, play the Hurt animation
+                //If the enemy survives, play the Hurt animation
                 if (enemy.isAlive()) {
                     currentSprite = assets.getHurt(round);
                     animationTimer = 0.4f;
 
-                    // Schedule the enemy counterattack
+                    //Schedule the enemy counterattack
                     enemyTurnTimer = 1.5f; // Wait 1.5 seconds before the enemy counters
                     enemyFadeTimer = ENEMY_FADE_DURATION;
 
                 } else {
-                    // The enemy is defeated, so no counterattack occurs
+                    //The enemy is defeated, so no counterattack occurs
                     currentSprite = assets.getDead(round);
                     assets.stopMusic();
                     assets.playEnemyDefeated();
                     animationTimer = 0f;
                     enemyTurnTimer = 0f;
-                    // ROUND PROGRESSION: let the player read the victory message.
-                    // We do NOT heal the sword; its current HP carries forward.
+                    //ROUND PROGRESSION: let the player read the victory message.
+                    //We do NOT heal the sword; its current HP carries forward.
                     if (round < 5) {
                         waitingForNextRound = true;
                         String nextName = EnemyFactory.getEnemyName(round + 1);
                         battleMessage = battleStatus("YOU WIN! " + enemyDisplayName
                             + " defeated!\nNEXT: " + nextName + " - Press ENTER");
                     } else {
-                        // For this prototype, Calculator is the final opponent.
+                        //For this prototype, Calculator is the final opponent.
                         allRoundsWon = true;
                         battleMessage = battleStatus(
                             "YOU WIN! Professor Nek defeated!\nPrototype complete!");
@@ -202,12 +201,12 @@ public class BattleScreen extends ScreenAdapter {
 
         if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_2)) {
 
-            // Defend only during the player's turn
+            //Defend only during the player's turn
             if (!waitingForNextRound && !allRoundsWon
                 && battle.getTurnManager().isPlayerTurn()
                 && !battle.isBattleOver()) {
 
-                // Use the existing DefendMove through the Battle system
+                //Use the existing DefendMove through the Battle system
                 String result = battle.playerTurn(defendMove);
                 renderer.playShieldSound();
                 showShield = true;
@@ -217,12 +216,12 @@ public class BattleScreen extends ScreenAdapter {
 
                 System.out.println(result);
 
-                // Show the defense message
+                //Show the defense message
                 battleMessage = battleStatus(
                     "Insecure Sword used Defend!"
                 );
 
-                // Schedule the enemy's counterattack
+                //Schedule the enemy's counterattack
                 if (enemy.isAlive() && !battle.isBattleOver()) {
                     enemyTurnTimer = 1.5f;
                 }
@@ -266,7 +265,7 @@ public class BattleScreen extends ScreenAdapter {
                 battleMessage = battleStatus(result);
 
 
-                // ให้ศัตรูตอบโต้หลังใช้ Buff
+                //Buff
                 if (enemy.isAlive() && !battle.isBattleOver()) {
                     enemyTurnTimer = 1.5f;
                 }
@@ -288,23 +287,22 @@ public class BattleScreen extends ScreenAdapter {
         }
 
 
-        // Wait before the current enemy performs its counterattack
+        //Wait before the current enemy performs its counterattack
         if (enemyTurnTimer > 0f) {
 
-            // Count down using the time between frames
+            //Count down using the time between frames
             enemyTurnTimer -= delta;
 
-            // Only attack once the timer reaches zero
+            //Only attack once the timer reaches zero
             if (enemyTurnTimer <= 0f) {
 
                 enemyTurnTimer = 0f;
 
-                // Check that the current enemy is alive and it is its turn
-
+                //Check that the current enemy is alive and it is its turn
                 int previousPlayerHp = player.getCurrentHp();
                 boolean shieldWasActive = showShield;
 
-                // Keep using the same ChargeMove object while charging.
+                //Keep using the same ChargeMove object while charging.
                 if (!(enemyMove instanceof ChargeMove
                     && ((ChargeMove) enemyMove).isCharged())) {
                     enemyMove = enemyMoves[random.nextInt(enemyMoves.length)];
@@ -316,8 +314,7 @@ public class BattleScreen extends ScreenAdapter {
                 if (enemyIsCharging) {
                     renderer.playEnemyBuffAnimation();
                 }
-                // A charging turn does not consume the shield.
-
+                //A charging turn does not consume the shield.
                 boolean playerWasDamaged =
                     player.getCurrentHp() < previousPlayerHp;
 
@@ -341,7 +338,7 @@ public class BattleScreen extends ScreenAdapter {
 
                 System.out.println(result);
 
-                // Detect whether this turn was spent charging.
+                //Detect whether this turn was spent charging.
                 battleMessage = battleStatus(result);
 
                 if (enemyIsCharging) {
@@ -412,8 +409,8 @@ public class BattleScreen extends ScreenAdapter {
 
 
 
-        // RENDERING: hand all graphics to the renderer, leaving BattleScreen
-        // responsible only for inputs, turns, and round progression.
+        //RENDERING: hand all graphics to the renderer, leaving BattleScreen
+        //responsible only for inputs, turns, and round progression.
         renderer.render(
             assets,
             currentSprite,
@@ -428,13 +425,13 @@ public class BattleScreen extends ScreenAdapter {
 
     }
 
-    // RESIZE: tell renderer to adjust its projection + top-left dialogue position.
+    //RESIZE: tell renderer to adjust its projection + top-left dialogue position.
     @Override
     public void resize(int width, int height) {
         renderer.resize(width, height);
     }
 
-    // DISPOSE: each owner disposes only its own GPU/audio resources.
+    //DISPOSE: each owner disposes only its own GPU/audio resources.
     @Override
     public void dispose() {
         if (slashSounds != null) {
@@ -458,11 +455,11 @@ public class BattleScreen extends ScreenAdapter {
     }
 
 
-    // ROUND TRANSITION
-    // Enter moves to the NEXT opponent after a victory.
-    // PlayerCreature is deliberately NOT recreated here, so any HP lost
-    // against Garlic Man or Tung Tung Man remains lost against Calculator.
-    // This also leaves room to add your healing mechanic later.
+    //ROUND TRANSITION
+    //Enter moves to the NEXT opponent after a victory.
+    //PlayerCreature is deliberately NOT recreated here, so any HP lost
+    //against Garlic Man or Tung Tung Man remains lost against Calculator.
+    //This also leaves room to add your healing mechanic later.
     private void startNextRound() {
         showShield = false;
         player.removeAttackBuff();
@@ -470,19 +467,18 @@ public class BattleScreen extends ScreenAdapter {
         waitingForNextRound = false; // Allow normal attack input again.
         enemyDisplayName = EnemyFactory.getEnemyName(round);
 
-        // Fresh enemy + fresh Battle/TurnManager; same player instance.
+        //Fresh enemy + fresh Battle/TurnManager; same player instance.
         enemy = EnemyFactory.createEnemy(round);
         battle = new Battle(player, enemy);
         battle.startBattle();
 
-        // Get the correct opponent's idle image; reset animation delays.
+        //Get the correct opponent's idle image; reset animation delays.
         currentSprite = assets.getIdle(round);
         animationTimer = 0f;
         enemyTurnTimer = 0f;
 
-        // PLAYER MOVE: same placeholder Splash Hit for now.
-        // ENEMY MOVE: chosen per opponent by EnemyFactory.
-
+        //PLAYER MOVE: same placeholder Slash Hit for now.
+        //ENEMY MOVE: chosen per opponent by EnemyFactory.
 
         enemyMoves = EnemyFactory.createEnemyMoves(round);
         enemyMove = enemyMoves[0];
@@ -493,8 +489,8 @@ public class BattleScreen extends ScreenAdapter {
     }
 
 
-    // DIALOGUE TEXT: show the last action and both HP totals.
-    // The message stays visible until the next battle action.
+    //DIALOGUE TEXT: show the last action and both HP totals.
+    //The message stays visible until the next battle action.
     private String battleStatus(String action) {
         String enemyHp = enemyDisplayName + " HP: "
             + enemy.getCurrentHp() + "/" + enemy.getMaxHp();

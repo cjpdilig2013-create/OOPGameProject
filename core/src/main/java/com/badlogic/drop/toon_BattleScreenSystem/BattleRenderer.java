@@ -387,7 +387,7 @@ public class BattleRenderer {
                         playerWidth,
                         playerSize
                     );
-                    // เงาชั้นที่ 2
+                    //Shadow Effec 2
                     batch.setColor(0f, 0f, 0f, 0.17f);
                     batch.draw(
                         insecureSword,

@@ -123,7 +123,7 @@ public class EnemyAssets {
         }
     }
 
-    // MUSIC SWITCHING: stop the last round's music before starting the next.
+    //MUSIC SWITCHING: stop the last round's music before starting the next.
     public void playMusic(int round) {
         stopMusic();
         switch (round) {
@@ -141,7 +141,7 @@ public class EnemyAssets {
         if (battleMusic != null) battleMusic.stop();
     }
 
-    // Play the signature attack sound for the active opponent.
+    //Play the signature attack sound for the active opponent.
     public void playEnemyAttack(int round) {
         switch (round) {
             case 1: garlicAttackSound.play(0.7f); break;
@@ -157,7 +157,7 @@ public class EnemyAssets {
         enemyDefeatedSound.play(0.6f);
     }
 
-    // RESOURCE CLEANUP: dispose only what this class created.
+    //RESOURCE CLEANUP: dispose only what this class created.
     public void dispose() {
         stopMusic();
         garlicBackground.dispose();

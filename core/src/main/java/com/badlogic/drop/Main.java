@@ -12,7 +12,7 @@ public class Main extends Game {
     public void create() {
 
         // Start the game by opening the battle screen.
-        setScreen(new BattleScreen());
+        setScreen(new BattleScreen(this));
     }
 
     @Override

@@ -15,7 +15,7 @@ import java.util.Random;
 import com.badlogic.drop.ot_MoveSkillsSystem.HealMove;
 import com.badlogic.drop.ot_MoveSkillsSystem.SpecialSkillMove;
 import com.badlogic.drop.ot_MoveSkillsSystem.ChargeMove;
-import com.badlogic.gdx.audio.Sound;
+import com.badlogic.gdx.Game;
 
 // OOP Inheritance: BattleScreen extends ScreenAdapter.
 // This class controls the game's flow, not how each image is drawn.
@@ -77,6 +77,21 @@ public class BattleScreen extends ScreenAdapter {
     // save player move
     private int selectedMove = 0;
 
+    private final Game game;
+
+    // Allow the final hit and fainting message to play before the loss screen.
+    private boolean playerDefeated = false;
+    private float defeatTimer = 0f;
+    private static final float DEFEAT_DELAY = 2.0f;
+
+    // Show the final boss defeat before the victory screen.
+    private boolean victoryPending = false;
+    private float victoryTimer = 0f;
+
+    public BattleScreen(Game game) {
+        this.game = game;
+    }
+
 
 
 
@@ -105,7 +120,7 @@ public class BattleScreen extends ScreenAdapter {
         battle = new Battle(player, enemy);
         battle.startBattle();
         //1 move
-        splashHit = new DamageMove("Slash Hit", 10,
+        splashHit = new DamageMove("Slash Hit", 1000,
             "Insecure Sword attacks Garlic Man!");
 
         //2 move
@@ -155,7 +170,38 @@ public class BattleScreen extends ScreenAdapter {
 
 
     @Override
-        public void render(float delta) {
+    public void render(float delta) {
+
+        // Keep Professor Nek's defeated sprite visible for two seconds.
+        if (victoryPending) {
+            victoryTimer -= delta;
+            if (victoryTimer <= 0f) {
+                game.setScreen(new WinScreen(game));
+                dispose();
+                return;
+            }
+
+            renderer.setCurrentMenu(menuState.name());
+            renderer.setSelectedChoice(selectedChoice);
+            renderer.render(
+                assets, currentSprite, player, enemy, round,
+                battleMessage, showPlayerSword, airSlashActive,
+                1f, false, showShield
+            );
+            return;
+        }
+
+        if (playerDefeated) {
+            defeatTimer -= delta;
+            if (defeatTimer <= 0f) {
+                showLoseScreen();
+                return;
+            }
+        }
+
+        // Disable menu input while defeated, but continue rendering
+        // the battle background, enemy animation and fainting message.
+        if (!playerDefeated) {
 
             // Show the victory message until Enter is pressed.
             if (waitingForNextRound && Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
@@ -163,32 +209,32 @@ public class BattleScreen extends ScreenAdapter {
             }
 
 
-        // Handle menu navigation
-        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)
-            || Gdx.input.isKeyJustPressed(Input.Keys.BACKSPACE)) {
-            if (menuState == MenuState.SURRENDER_CONFIRM
-                || menuState == MenuState.NOTE
-                || menuState == MenuState.STATUS
-                || menuState == MenuState.NOTE_CONFIRM
-                || menuState == MenuState.FIGHT_MENU) {
-                menuState = MenuState.MAIN_MENU;
-                battleMessage = "Choose your action.";
+            // Handle menu navigation
+            if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)
+                || Gdx.input.isKeyJustPressed(Input.Keys.BACKSPACE)) {
+                if (menuState == MenuState.SURRENDER_CONFIRM
+                    || menuState == MenuState.NOTE
+                    || menuState == MenuState.STATUS
+                    || menuState == MenuState.NOTE_CONFIRM
+                    || menuState == MenuState.FIGHT_MENU) {
+                    menuState = MenuState.MAIN_MENU;
+                    battleMessage = "Choose your action.";
 
+                }
             }
-        }
-        // Navigate the 2x2 menu with arrow keys.
-        if ((menuState == MenuState.MAIN_MENU
-            || menuState == MenuState.FIGHT_MENU)
-            && !waitingForNextRound
-            && !allRoundsWon
-            && !waitingToUseMove
-            && !battle.isBattleOver()
-            && player.isAlive()
-            && (menuState != MenuState.FIGHT_MENU
-            || battle.getTurnManager().isPlayerTurn())) {
+            // Navigate the 2x2 menu with arrow keys.
+            if ((menuState == MenuState.MAIN_MENU
+                || menuState == MenuState.FIGHT_MENU)
+                && !waitingForNextRound
+                && !allRoundsWon
+                && !waitingToUseMove
+                && !battle.isBattleOver()
+                && player.isAlive()
+                && (menuState != MenuState.FIGHT_MENU
+                || battle.getTurnManager().isPlayerTurn())) {
 
-            updateChoiceNavigation();
-        }
+                updateChoiceNavigation();
+            }
 
             if (menuState == MenuState.MAIN_MENU) {
                 if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
@@ -248,7 +294,7 @@ public class BattleScreen extends ScreenAdapter {
                     selectedChoice = 1;
                 }
 
-                } else if (menuState == MenuState.STATUS) {
+            } else if (menuState == MenuState.STATUS) {
                 if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
                     menuState = MenuState.MAIN_MENU;
                     selectedChoice = 2;
@@ -256,15 +302,15 @@ public class BattleScreen extends ScreenAdapter {
                 }
             } else if (menuState == MenuState.SURRENDER_CONFIRM) {
                 if (Gdx.input.isKeyJustPressed(Input.Keys.Y)) {
-                    menuState = MenuState.MAIN_MENU;
-                    allRoundsWon = true;
-                    assets.stopMusic();
-                    battleMessage = "You surrendered. Game over.";
+                    showLoseScreen();
+                    return;
+
                 } else if (Gdx.input.isKeyJustPressed(Input.Keys.N)) {
                     menuState = MenuState.MAIN_MENU;
                     selectedChoice = 3;
                     battleMessage = "You chose to continue fighting.";
                 }
+
             } else if (menuState == MenuState.FIGHT_MENU) {
                 if (!waitingForNextRound
                     && !allRoundsWon
@@ -285,6 +331,8 @@ public class BattleScreen extends ScreenAdapter {
 
 
 
+
+        } // End of player input handling.
 
         if (waitingToUseMove) {
             moveDelayTimer -= delta;
@@ -378,10 +426,11 @@ public class BattleScreen extends ScreenAdapter {
                 }
 
                 if (!player.isAlive()) {
-                    battleMessage = battleStatus(
-                        "Insecure Sword fainted! Game over."
-                    );
-                    assets.stopMusic();
+                    playerDefeated = true;
+                    defeatTimer = DEFEAT_DELAY;
+                    waitingToUseMove = false;
+                    enemyTurnTimer = 0f;
+                    battleMessage = battleStatus("Insecure Sword fainted!");
                 }
 
                 System.out.println(
@@ -552,10 +601,9 @@ public class BattleScreen extends ScreenAdapter {
                         );
                     } else {
                         allRoundsWon = true;
-                        battleMessage = battleStatus(
-                            "YOU WIN! Professor Nek defeated!\n"
-                                + "Prototype complete!"
-                        );
+                        victoryPending = true;
+                        victoryTimer = 2.0f;
+                        battleMessage = battleStatus("Professor Nek defeated!");
                     }
                 }
 
@@ -667,6 +715,13 @@ public class BattleScreen extends ScreenAdapter {
             + player.getCurrentHp() + "/" + player.getMaxHp();
 
         return action + "\n" + enemyHp + "    |    " + playerHp;
+    }
+
+
+    private void showLoseScreen() {
+        assets.stopMusic();
+        game.setScreen(new LoseScreen(game));
+        dispose();
     }
 
 }

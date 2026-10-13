@@ -88,6 +88,7 @@ public class BattleScreen extends ScreenAdapter {
     private boolean victoryPending = false;
     private float victoryTimer = 0f;
 
+
     public BattleScreen(Game game) {
         this.game = game;
     }
@@ -109,6 +110,7 @@ public class BattleScreen extends ScreenAdapter {
         );
         // Create renderer + assets only once when this battle screen opens.
         renderer = new BattleRenderer();
+
         assets = new EnemyAssets();
         assets.playMusic(round);
         currentSprite = assets.getIdle(round);
@@ -270,31 +272,21 @@ public class BattleScreen extends ScreenAdapter {
                 }
 
             } else if (menuState == MenuState.NOTE_CONFIRM) {
-                if (Gdx.input.isKeyJustPressed(Input.Keys.LEFT)
-                    || Gdx.input.isKeyJustPressed(Input.Keys.RIGHT)) {
-                    selectedNoteChoice = 1 - selectedNoteChoice;
-                    playButtonSound();
+            if (selectedNoteChoice == 0) {
+                if (renderer.getAttachedNoteCount() < round) {
+                    renderer.attachNoteToSword();
+
+                    battleMessage = "You attached a NOTE!";
+                } else {
+                    battleMessage = "No more NOTE available this round!";
                 }
+            } else {
+                battleMessage = "You chose not to use NOTE.";
+            }
 
-                if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
-                    playButtonSound();
-
-                    if (selectedNoteChoice == 0) {
-                        if (renderer.attachNoteToSword()) {
-                            battleMessage = "You used NOTE!";
-                        } else {
-                            battleMessage = "You have no NOTE left!";
-                        }
-                    } else {
-                        battleMessage = "You chose not to use NOTE.";
-                    }
-
-
-                    menuState = MenuState.MAIN_MENU;
-                    selectedChoice = 1;
-                }
-
-            } else if (menuState == MenuState.STATUS) {
+            menuState = MenuState.MAIN_MENU;
+            selectedChoice = 1;
+        } else if (menuState == MenuState.STATUS) {
                 if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
                     menuState = MenuState.MAIN_MENU;
                     selectedChoice = 2;
@@ -577,6 +569,7 @@ public class BattleScreen extends ScreenAdapter {
                 showPlayerSword = false;
                 swordHideTimer = SWORD_HIDE_DURATION;
 
+
                 if (enemy.isAlive()) {
                     currentSprite = assets.getHurt(round);
                     animationTimer = 0.4f;
@@ -588,6 +581,8 @@ public class BattleScreen extends ScreenAdapter {
                     assets.playEnemyDefeated();
                     animationTimer = 0f;
                     enemyTurnTimer = 0f;
+
+                    // Gain 1 NOTE when the enemy is defeated.
 
                     if (round < 5) {
                         waitingForNextRound = true;
@@ -606,6 +601,7 @@ public class BattleScreen extends ScreenAdapter {
                         battleMessage = battleStatus("Professor Nek defeated!");
                     }
                 }
+
 
                 if (enemy.isAlive()) {
                     battleMessage =
@@ -668,17 +664,17 @@ public class BattleScreen extends ScreenAdapter {
     }
 
 
-
     // ROUND TRANSITION
     // Enter moves to the NEXT opponent after a victory.
     // PlayerCreature is deliberately NOT recreated here, so any HP lost
     // against Garlic Man or Tung Tung Man remains lost against Calculator.
     // This also leaves room to add your healing mechanic later.
     private void startNextRound() {
+
         renderer.removeNoteFromSword();
         showShield = false;
         player.removeAttackBuff();
-        round++; // 1 -> 2 -> 3
+        round++; // 1 -> 2 ->
         waitingForNextRound = false; // Allow normal attack input again.
         enemyDisplayName = EnemyFactory.getEnemyName(round);
 

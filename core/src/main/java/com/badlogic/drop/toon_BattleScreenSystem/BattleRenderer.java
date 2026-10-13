@@ -163,7 +163,7 @@ public class BattleRenderer {
 
     public boolean attachNoteToSword() {
         if (attachedNoteCount >= noteTextures.length) {
-            return false; // NOTE ครบ 5 แผ่นแล้ว
+            return false;
         }
 
         attachedNoteCount++;
@@ -207,6 +207,9 @@ public class BattleRenderer {
     public void playHealAnimation() {
         healAnimationTime = 0f;
         playingHealAnimation = true;
+    }
+    public int getAttachedNoteCount() {
+        return attachedNoteCount;
     }
 
     public void playEnemyBuffAnimation() {

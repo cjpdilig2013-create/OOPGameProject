@@ -80,6 +80,7 @@ public class BattleRenderer {
     //choicce screen
     private String currentMenu = "MAIN_MENU";
     private int selectedChoice = 0;
+    private boolean showAttackMenu = true;
 
 
     private Texture shadowSword;
@@ -222,6 +223,10 @@ public class BattleRenderer {
 
     public void setSelectedChoice(int selectedChoice) {
         this.selectedChoice = selectedChoice;
+    }
+
+    public void setShowAttackMenu(boolean show) {
+        this.showAttackMenu = show;
     }
 
 
@@ -610,6 +615,7 @@ public class BattleRenderer {
         }
 
     // วาด Enemy HP bar
+        if (enemyAlpha > 0f) {
             drawHpBar(
                 hpBarX,
                 hpBarY,
@@ -618,6 +624,7 @@ public class BattleRenderer {
                 enemy.getCurrentHp(),
                 enemy.getMaxHp()
             );
+        }
 
     // วาด Player HP bar
             float playerHpX = playerX;
@@ -650,9 +657,10 @@ public class BattleRenderer {
 
             // Draw HP bars
 
-            // Draw attack menu last
+        // Draw attack menu only when enabled
+        if (showAttackMenu) {
             drawAttackMenu();
-
+        }
 
     }
 

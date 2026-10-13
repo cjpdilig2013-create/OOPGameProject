@@ -31,6 +31,7 @@ public class BattleScreen extends ScreenAdapter {
     private String battleMessage = "A wild Garlic Man appeared!";
 
     private float animationTimer = 0f;
+    private boolean waitingForEnemyAnimation = false;
 
     private boolean airSlashActive = false;
     private float airSlashTimer = 0f;
@@ -93,6 +94,12 @@ public class BattleScreen extends ScreenAdapter {
         this.game = game;
     }
 
+    private float enemyDeathFadeTimer = 0f;
+    private static final float ENEMY_DEATH_FADE_DURATION = 1.2f;
+    private boolean enemyDying = false;
+    private float menuHideTimer = 0f;
+    private static final float MENU_HIDE_DURATION = 0.3f;
+
 
 
 
@@ -122,7 +129,7 @@ public class BattleScreen extends ScreenAdapter {
         battle = new Battle(player, enemy);
         battle.startBattle();
         //1 move
-        splashHit = new DamageMove("Slash Hit", 1000,
+        splashHit = new DamageMove("Slash Hit", 10,
             "Insecure Sword attacks Garlic Man!");
 
         //2 move
@@ -171,6 +178,8 @@ public class BattleScreen extends ScreenAdapter {
     private int selectedNoteChoice = 0;
 
 
+
+
     @Override
     public void render(float delta) {
 
@@ -206,9 +215,11 @@ public class BattleScreen extends ScreenAdapter {
         if (!playerDefeated) {
 
             // Show the victory message until Enter is pressed.
-            if (waitingForNextRound && Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
+            if (waitingForNextRound
+                && Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
                 startNextRound();
             }
+
 
 
             // Handle menu navigation
@@ -225,11 +236,15 @@ public class BattleScreen extends ScreenAdapter {
                 }
             }
             // Navigate the 2x2 menu with arrow keys.
+
             if ((menuState == MenuState.MAIN_MENU
                 || menuState == MenuState.FIGHT_MENU)
                 && !waitingForNextRound
                 && !allRoundsWon
                 && !waitingToUseMove
+                && !waitingForEnemyAnimation
+                && animationTimer <= 0f
+                && enemyTurnTimer <= 0f
                 && !battle.isBattleOver()
                 && player.isAlive()
                 && (menuState != MenuState.FIGHT_MENU
@@ -238,8 +253,19 @@ public class BattleScreen extends ScreenAdapter {
                 updateChoiceNavigation();
             }
 
-            if (menuState == MenuState.MAIN_MENU) {
-                if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
+
+
+            if (menuState == MenuState.MAIN_MENU
+                && !waitingForNextRound
+                && !allRoundsWon
+                && !battle.isBattleOver()
+                && player.isAlive()) {
+                if (!waitingForEnemyAnimation
+                    && animationTimer <= 0f
+                    && enemyTurnTimer <= 0f
+                    && !waitingToUseMove
+                    && Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
+
                     playButtonSound();
 
                     switch (selectedChoice) {
@@ -303,13 +329,20 @@ public class BattleScreen extends ScreenAdapter {
                     battleMessage = "You chose to continue fighting.";
                 }
 
-            } else if (menuState == MenuState.FIGHT_MENU) {
+            } else
+            if (menuState == MenuState.FIGHT_MENU) {
                 if (!waitingForNextRound
                     && !allRoundsWon
                     && !waitingToUseMove
+                    && !waitingForEnemyAnimation
+                    && animationTimer <= 0f
+                    && enemyTurnTimer <= 0f
                     && battle.getTurnManager().isPlayerTurn()
                     && !battle.isBattleOver()
                     && player.isAlive()
+                    && !battle.isBattleOver()
+                    && player.isAlive()
+
                     && Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
 
                     selectedMove = selectedChoice + 1;
@@ -319,10 +352,10 @@ public class BattleScreen extends ScreenAdapter {
                     battleMessage = "Preparing move...";
                 }
             }
-
-
-
-
+            //
+            if (menuHideTimer > 0f) {
+                menuHideTimer -= delta;
+            }
 
         } // End of player input handling.
 
@@ -336,14 +369,12 @@ public class BattleScreen extends ScreenAdapter {
 
 
         if (animationTimer > 0f) {
-
-            //Subtract the time that passed since the previous frame
             animationTimer -= delta;
 
-            //Once time runs out, return to Idle
             if (animationTimer <= 0f) {
                 currentSprite = assets.getIdle(round);
                 animationTimer = 0f;
+                waitingForEnemyAnimation = false;
             }
         }
 
@@ -415,8 +446,8 @@ public class BattleScreen extends ScreenAdapter {
                     assets.playEnemyAttack(round);
                     currentSprite = assets.getAttack(round);
                     animationTimer = 0.75f;
+                    waitingForEnemyAnimation = true;
                 }
-
                 if (!player.isAlive()) {
                     playerDefeated = true;
                     defeatTimer = DEFEAT_DELAY;
@@ -460,6 +491,19 @@ public class BattleScreen extends ScreenAdapter {
         if (enemyFadeTimer > 0f) {
             enemyAlpha = 0.55f;
         }
+
+        if (enemyDying) {
+            enemyDeathFadeTimer -= delta;
+
+            if (enemyDeathFadeTimer <= 0f) {
+                enemyDeathFadeTimer = 0f;
+            }
+
+            enemyAlpha = enemyDeathFadeTimer / ENEMY_DEATH_FADE_DURATION;
+        }
+        if (enemyFadeTimer > 0f) {
+            enemyAlpha = 0.55f;
+        }
         if (playerHitFlashTimer > 0f) {
             playerHitFlashTimer -= delta;
 
@@ -476,6 +520,18 @@ public class BattleScreen extends ScreenAdapter {
         renderer.setSelectedChoice(selectedChoice);
         // RENDERING: hand all graphics to the renderer, leaving BattleScreen
         // responsible only for inputs, turns, and round progression.
+
+        boolean canShowMenu =
+            !waitingForEnemyAnimation
+                && animationTimer <= 0f
+                && enemyTurnTimer <= 0f
+                && !waitingToUseMove
+                && !waitingForNextRound
+                && !allRoundsWon
+                && !playerDefeated;
+
+        renderer.setShowAttackMenu(canShowMenu);
+
         renderer.render(
             assets,
             currentSprite,
@@ -570,18 +626,24 @@ public class BattleScreen extends ScreenAdapter {
                 swordHideTimer = SWORD_HIDE_DURATION;
 
 
+
                 if (enemy.isAlive()) {
                     currentSprite = assets.getHurt(round);
                     animationTimer = 0.4f;
+                    waitingForEnemyAnimation = true;
+                    menuHideTimer = MENU_HIDE_DURATION;
                     enemyTurnTimer = 1.5f;
                     enemyFadeTimer = ENEMY_FADE_DURATION;
-                } else {
+                }
+                else {
                     currentSprite = assets.getDead(round);
                     assets.stopMusic();
                     assets.playEnemyDefeated();
                     animationTimer = 0f;
                     enemyTurnTimer = 0f;
 
+                    enemyDying = true;
+                    enemyDeathFadeTimer = ENEMY_DEATH_FADE_DURATION;
                     // Gain 1 NOTE when the enemy is defeated.
 
                     if (round < 5) {
@@ -592,7 +654,7 @@ public class BattleScreen extends ScreenAdapter {
                         battleMessage = battleStatus(
                             "YOU WIN! " + enemyDisplayName
                                 + " defeated!\nNEXT: " + nextName
-                                + " - Press ENTER"
+                                + " - Press SPACE"
                         );
                     } else {
                         allRoundsWon = true;
@@ -670,6 +732,9 @@ public class BattleScreen extends ScreenAdapter {
     // against Garlic Man or Tung Tung Man remains lost against Calculator.
     // This also leaves room to add your healing mechanic later.
     private void startNextRound() {
+        enemyDying = false;
+        enemyDeathFadeTimer = 0f;
+        enemyFadeTimer = 0f;
 
         renderer.removeNoteFromSword();
         showShield = false;

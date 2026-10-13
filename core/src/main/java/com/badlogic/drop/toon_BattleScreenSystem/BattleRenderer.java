@@ -82,8 +82,16 @@ public class BattleRenderer {
     private int selectedChoice = 0;
     private boolean showAttackMenu = true;
 
+    private boolean showNoteInput = false;
+    private String noteInputText = "";
 
-    private Texture shadowSword;
+    public void setShowNoteInput(boolean show) {
+        this.showNoteInput = show;
+    }
+
+    public void setNoteInputText(String text) {
+        this.noteInputText = (text == null) ? "" : text;
+    }
 
     public BattleRenderer() {
         dialogueFont.setColor(Color.BLACK);
@@ -228,7 +236,6 @@ public class BattleRenderer {
     public void setShowAttackMenu(boolean show) {
         this.showAttackMenu = show;
     }
-
 
     // ONE rendering entry point shared by Garlic Man and Tung Tung Man.
     // The screen supplies current textures, HP, round number, and message.
@@ -652,7 +659,7 @@ public class BattleRenderer {
 
             dialogueBox.setText(battleMessage);
 
-        if (!"STATUS".equals(currentMenu)) {
+        if (!showNoteInput && !"STATUS".equals(currentMenu)) {
             dialogueBox.setText(battleMessage);
 
             shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
@@ -675,13 +682,16 @@ public class BattleRenderer {
         // Draw HP bars
 
         // Draw attack menu only when enabled
-        if (showAttackMenu && !"STATUS".equals(currentMenu)) {
+        if (showNoteInput && !"STATUS".equals(currentMenu)) {
+            drawNoteInputPanel(noteInputText);
+        } else if (showAttackMenu && !"STATUS".equals(currentMenu)) {
             drawAttackMenu();
         }
 
         if ("STATUS".equals(currentMenu)) {
             drawStatusPanel(player, enemy);
         }
+
     }
 
 
@@ -945,6 +955,86 @@ public class BattleRenderer {
         batch.end();
     }
 
+    private void drawNoteInputPanel(String noteInput) {
+        float screenWidth = Gdx.graphics.getWidth();
+        float screenHeight = Gdx.graphics.getHeight();
+
+        // ใช้ตำแหน่งและขนาดเดียวกับเมนูด้านขวาล่าง
+        float panelWidth = screenWidth * 0.55f;
+        float panelHeight = screenHeight * 0.22f;
+        float panelX = screenWidth - panelWidth - 20f;
+        float panelY = 20f;
+
+        Gdx.gl.glEnable(
+            com.badlogic.gdx.graphics.GL20.GL_BLEND
+        );
+        Gdx.gl.glBlendFunc(
+            com.badlogic.gdx.graphics.GL20.GL_SRC_ALPHA,
+            com.badlogic.gdx.graphics.GL20.GL_ONE_MINUS_SRC_ALPHA
+        );
+
+        // พื้นหลังสีส้มอ่อน
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+        shapeRenderer.setColor(0.95f, 0.62f, 0.32f, 0.96f);
+        shapeRenderer.rect(
+            panelX, panelY, panelWidth, panelHeight
+        );
+        shapeRenderer.end();
+
+        // กรอบสีน้ำตาลส้ม
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+        shapeRenderer.setColor(0.65f, 0.30f, 0.08f, 1f);
+        shapeRenderer.rect(
+            panelX, panelY, panelWidth, panelHeight
+        );
+        shapeRenderer.end();
+
+        Gdx.gl.glDisable(
+            com.badlogic.gdx.graphics.GL20.GL_BLEND
+        );
+
+        // ข้อความในช่อง
+        float fontScale = Math.max(
+            0.8f,
+            Math.min(screenHeight / 720f * 1.5f, 2.5f)
+        );
+
+        font.getData().setScale(fontScale);
+        font.setColor(Color.BLACK);
+
+        batch.begin();
+
+        // ช่องแสดงข้อความที่กำลังพิมพ์
+        float inputX = panelX + 18f;
+        float inputY = panelY + panelHeight * 0.30f;
+        float inputWidth = panelWidth - 36f;
+        float inputHeight = panelHeight * 0.36f;
+
+        batch.end();
+
+
+        batch.begin();
+
+        String displayedText = (noteInput == null || noteInput.isEmpty())
+            ? "..."
+            : noteInput;
+
+        font.getData().setScale(fontScale * 2.5f);
+
+        font.draw(
+            batch,
+            displayedText + "_",
+            inputX + 10f,
+            inputY + inputHeight * 0.72f
+        );
+
+        batch.end();
+
+        font.getData().setScale(1f);
+        font.setColor(Color.BLACK);
+    }
+
+
 
     private void drawStatusPanel(PlayerCreature player, Enemy enemy) {
         float screenWidth = Gdx.graphics.getWidth();
@@ -1032,8 +1122,13 @@ public class BattleRenderer {
             panelY + panelHeight - 65f
         );
 
-        font.draw(batch, "Press ENTER or ESC to return",
-            panelX + 20f, panelY + 35f);
+        float oldScaleX = font.getData().scaleX;
+        float oldScaleY = font.getData().scaleY;
+
+        font.getData().setScale(02f);
+        font.draw(batch, "ENTER: Confirm   ESC: Cancel", 20, 20);
+
+        font.getData().setScale(oldScaleX, oldScaleY);
 
         batch.end();
 

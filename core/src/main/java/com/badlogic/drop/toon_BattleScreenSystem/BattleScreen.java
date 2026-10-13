@@ -182,11 +182,11 @@ public class BattleScreen extends ScreenAdapter {
     private int selectedChoice = 0;
     private int selectedNoteChoice = 0;
 
+
     private boolean typingNote = false;
     private StringBuilder noteInput = new StringBuilder();
 
-
-
+    private boolean noteJustSubmitted = false;
 
     @Override
     public void render(float delta) {
@@ -202,6 +202,8 @@ public class BattleScreen extends ScreenAdapter {
 
             renderer.setCurrentMenu(menuState.name());
             renderer.setSelectedChoice(selectedChoice);
+            renderer.setShowNoteInput(typingNote);
+            renderer.setNoteInputText(noteInput.toString());
             renderer.render(
                 assets, currentSprite, player, enemy, round,
                 battleMessage, showPlayerSword, airSlashActive,
@@ -257,6 +259,7 @@ public class BattleScreen extends ScreenAdapter {
                 && !battle.isBattleOver()
                 && player.isAlive()
                 && (menuState != MenuState.FIGHT_MENU
+                && !typingNote
                 || battle.getTurnManager().isPlayerTurn())) {
 
                 if (menuState == MenuState.SURRENDER_CONFIRM) {
@@ -269,6 +272,8 @@ public class BattleScreen extends ScreenAdapter {
 
 
             if (menuState == MenuState.MAIN_MENU
+                && !typingNote
+                && !noteJustSubmitted
                 && !waitingForNextRound
                 && !allRoundsWon
                 && !battle.isBattleOver()
@@ -289,9 +294,11 @@ public class BattleScreen extends ScreenAdapter {
                             break;
 
                         case 1:
-                            menuState = MenuState.NOTE_CONFIRM;
-                            selectedNoteChoice = 0;
-                            battleMessage = "Use NOTE?";
+                            if (renderer.getAttachedNoteCount() < round) {
+                                startNoteTyping();
+                            } else {
+                                battleMessage = "No more NOTE available this round!";
+                            }
                             break;
 
 
@@ -566,11 +573,16 @@ public class BattleScreen extends ScreenAdapter {
 
         renderer.setCurrentMenu(menuState.name());
         renderer.setSelectedChoice(selectedChoice);
+
+        renderer.setShowNoteInput(typingNote);
+        renderer.setNoteInputText(noteInput.toString());
+
         // RENDERING: hand all graphics to the renderer, leaving BattleScreen
         // responsible only for inputs, turns, and round progression.
 
         boolean canShowMenu =
-            !waitingForEnemyAnimation
+            !typingNote
+                && !waitingForEnemyAnimation
                 && animationTimer <= 0f
                 && enemyTurnTimer <= 0f
                 && !waitingToUseMove
@@ -610,6 +622,7 @@ public class BattleScreen extends ScreenAdapter {
             showShield,
             playerDeathAlpha
         );
+        noteJustSubmitted = false;
 
 
     }
@@ -617,6 +630,9 @@ public class BattleScreen extends ScreenAdapter {
     private void startNoteTyping() {
         typingNote = true;
         noteInput.setLength(0);
+
+        renderer.setShowNoteInput(true);
+        renderer.setNoteInputText("");
 
         Gdx.input.setInputProcessor(new com.badlogic.gdx.InputAdapter() {
             @Override
@@ -627,8 +643,11 @@ public class BattleScreen extends ScreenAdapter {
 
                 if (character == '\n' || character == '\r') {
                     typingNote = false;
+                    noteJustSubmitted = true;
+
                     Gdx.input.setInputProcessor(null);
                     useNoteWord(noteInput.toString());
+
                     return true;
                 }
 
@@ -737,20 +756,29 @@ public class BattleScreen extends ScreenAdapter {
     }
 
 
+
     private void useNoteWord(String text) {
-        if (!renderer.attachNoteToSword()) {
-            battleMessage = "No more NOTE available!";
+        // Check whether the entered keyword is valid.
+        if (text == null || !"Fire".equalsIgnoreCase(text.trim())) {
+            battleMessage = "No such keyword! Choose a command.";
+            menuState = MenuState.MAIN_MENU;
+            selectedChoice = 0;
             return;
         }
 
-        if (text != null && "Fire".equalsIgnoreCase(text.trim())) {
-            player.activateFireBuff();
-            battleMessage = "The NOTE awakened! Fire power activated!";
-        } else {
-            battleMessage = "The NOTE accepted: " + text;
+        // Attach the NOTE only after the keyword is validated.
+        if (!renderer.attachNoteToSword()) {
+            battleMessage = "No more NOTE available!";
+            menuState = MenuState.MAIN_MENU;
+            selectedChoice = 0;
+            return;
         }
 
-        // NOTE consumes the player's turn.
+        // Activate the Fire effect.
+        player.activateFireBuff();
+        battleMessage = "The NOTE awakened! Fire power activated!";
+
+        // NOTE consumes the player's turn only when valid.
         if (enemy.isAlive() && !battle.isBattleOver()) {
             enemyTurnTimer = 1.5f;
             waitingForEnemyAnimation = false;
@@ -758,6 +786,7 @@ public class BattleScreen extends ScreenAdapter {
             battle.endPlayerTurn();
         }
     }
+
 
 
 

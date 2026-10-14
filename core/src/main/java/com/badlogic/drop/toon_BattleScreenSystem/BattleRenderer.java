@@ -99,6 +99,10 @@ public class BattleRenderer {
     public void setLifeStealActive(boolean active) {
         this.lifeStealActive = active;
     }
+    private boolean immortalActive = false;
+    public void setImmortalActive(boolean active) {
+        this.immortalActive = active;
+    }
 
     private float airSlashTimer = 0f;
     private static final float AIR_SLASH_DURATION = 0.30f;
@@ -581,9 +585,14 @@ public class BattleRenderer {
                     playerSize
                 );
 
-                // ดาบปกติ พร้อมเอฟเฟกต์ Buff
+
+                // ดาบปกติ พร้อมเอฟเฟกต์ Buff และ Immortal
                 if (redFlashTimer > 0f) {
+                    // Sharpen: สีแดงมีลำดับความสำคัญสูงสุด
                     batch.setColor(1f, 0f, 0f, 1f);
+                } else if (immortalActive) {
+                    // Immortal: สีฟ้าอ่อน
+                    batch.setColor(0.2f, 0.65f, 1f, 1f);
                 } else {
                     batch.setColor(Color.WHITE);
                 }

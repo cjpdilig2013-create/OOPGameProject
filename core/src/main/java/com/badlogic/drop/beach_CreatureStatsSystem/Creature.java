@@ -12,6 +12,7 @@ public class Creature {
 
     // Set by DefendMove: reduces the next incoming hit, then resets.
     private int defendReduction = 0;
+    private boolean permanentDefendReduction = false;
 
     public Creature(String name, int level, int maxHp, int attack, int defense, int speed) {
         this.name = name;
@@ -43,7 +44,9 @@ public class Creature {
 
         // A successful hit consumes the shield,
         // even if the shield blocks all damage.
-        clearDefendReduction();
+        if (!permanentDefendReduction) {
+            clearDefendReduction();
+        }
 
         stats.setHp(Math.max(0, before - finalDamage));
 
@@ -93,6 +96,9 @@ public class Creature {
     public void setDefendReduction(int amount) { defendReduction = Math.max(0, amount); }
     public int getDefendReduction() { return defendReduction; }
     public void clearDefendReduction() { defendReduction = 0; }
+    public void setPermanentDefendReduction(boolean permanent) {
+        permanentDefendReduction = permanent;
+    }
 
     protected void setLevel(int level) { this.level = Math.max(1, level); }
 

@@ -46,6 +46,9 @@ public class BattleScreen extends ScreenAdapter {
     private float doubleSlashTimer = 0f;
 
     private boolean lifeStealActive = false;
+    private boolean immortalActive = false;
+    private int immortalTurnsRemaining = 0;
+    private int immortalOriginalDefendReduction = 0;
 
     private float enemyTurnTimer = 0f;
     private float enemyFadeTimer = 0f;
@@ -458,12 +461,23 @@ public class BattleScreen extends ScreenAdapter {
                 System.out.println("Turn before enemy action: "
                     + battle.getTurnManager().getCurrentTurn());
 
+                boolean wasImmortal = immortalActive;
                 String result = battle.enemyTurn(enemyMove);
 
                 System.out.println("DEBUG ENEMY RESULT: [" + result + "]");
 
                 System.out.println("Enemy result: " + result);
                 boolean enemyIsCharging = result.contains("is charging up");
+                if (!enemyIsCharging && wasImmortal) {
+                    renderer.playBlockSound();
+                }
+                if (!enemyIsCharging && immortalActive) {
+                    immortalTurnsRemaining--;
+
+                    if (immortalTurnsRemaining <= 0) {
+                        endImmortal();
+                    }
+                }
 
                 // A charging turn does not consume the shield.
 
@@ -695,6 +709,7 @@ public class BattleScreen extends ScreenAdapter {
         }
 
         renderer.setLifeStealActive(lifeStealActive);
+        renderer.setImmortalActive(immortalActive);
 
         renderer.render(
             assets,
@@ -864,7 +879,8 @@ public class BattleScreen extends ScreenAdapter {
 
         if (!"Sharpen".equalsIgnoreCase(keyword)
             && !"DoubleSlash".equalsIgnoreCase(keyword)
-            && !"LifeSteal".equalsIgnoreCase(keyword)) {
+            && !"LifeSteal".equalsIgnoreCase(keyword)
+            && !"Immortal".equalsIgnoreCase(keyword)) {
             battleMessage = "No such keyword! Choose a command.";
             menuState = MenuState.MAIN_MENU;
             selectedChoice = 0;
@@ -889,15 +905,34 @@ public class BattleScreen extends ScreenAdapter {
         } else if ("LifeSteal".equalsIgnoreCase(keyword)) {
             lifeStealActive = true;
             battleMessage = "LifeSteal activated! Recover 25% of Slash damage!";
-        }
+    } else if ("Immortal".equalsIgnoreCase(keyword)) {
+        immortalOriginalDefendReduction = player.getDefendReduction();
 
-        // NOTE consumes the player's turn only when valid.
+        immortalActive = true;
+        immortalTurnsRemaining = 3;
+        player.setPermanentDefendReduction(true);
+        player.setDefendReduction(9999);
+
+        battleMessage = "Immortal activated! 3 turns of invincibility!";
+    }
+
+
+    // NOTE consumes the player's turn only when valid.
         if (enemy.isAlive() && !battle.isBattleOver()) {
             enemyTurnTimer = 1.5f;
             waitingForEnemyAnimation = false;
             animationTimer = 0f;
             battle.endPlayerTurn();
         }
+    }
+    private void endImmortal() {
+        immortalActive = false;
+        immortalTurnsRemaining = 0;
+
+        player.setPermanentDefendReduction(false);
+        player.setDefendReduction(immortalOriginalDefendReduction);
+
+        battleMessage += "\nImmortal has ended!";
     }
 
     private void applyLifeSteal() {
@@ -1060,6 +1095,27 @@ public class BattleScreen extends ScreenAdapter {
         enemyDying = false;
         enemyDeathFadeTimer = 0f;
         enemyFadeTimer = 0f;
+
+        doubleSlashActive = false;
+        doubleSlashSecondHitPending = false;
+        doubleSlashTimer = 0f;
+
+        lifeStealActive = false;
+
+        if (immortalActive) {
+            player.setPermanentDefendReduction(false);
+            player.setDefendReduction(immortalOriginalDefendReduction);
+        }
+
+        showShield = false;
+        player.removeAttackBuff();
+        player.removeFireBuff();
+
+        renderer.setImmortalActive(false);
+        renderer.setLifeStealActive(false);
+
+        immortalActive = false;
+        immortalTurnsRemaining = 0;
 
         renderer.removeNoteFromSword();
         showShield = false;

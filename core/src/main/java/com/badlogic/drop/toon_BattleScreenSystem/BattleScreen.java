@@ -828,7 +828,7 @@ public class BattleScreen extends ScreenAdapter {
                     enemyDeathFadeTimer = ENEMY_DEATH_FADE_DURATION;
                     // Gain 1 NOTE when the enemy is defeated.
 
-                    if (round < 5) {
+                    if (round < EnemyFactory.getRoundCount()) {
                         waitingForNextRound = true;
                         String nextName =
                             EnemyFactory.getEnemyName(round + 1);

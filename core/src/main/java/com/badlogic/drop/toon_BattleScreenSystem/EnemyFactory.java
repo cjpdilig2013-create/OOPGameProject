@@ -5,6 +5,7 @@ import com.badlogic.drop.ot_MoveSkillsSystem.DamageMove;
 import com.badlogic.drop.ot_MoveSkillsSystem.Move;
 import com.badlogic.drop.ot_MoveSkillsSystem.ChargeMove;
 import com.badlogic.drop.ot_MoveSkillsSystem.EnemyBuffMove;
+import com.badlogic.drop.ot_MoveSkillsSystem.MathMove;
 
 //Enemy Factory is where we create the Spirtes for the Enemies
 //This includes there Stats (HP, Attack, etc.) and also there Move names and the damage it does
@@ -38,12 +39,10 @@ public class EnemyFactory {
             case 2:
                 return new ChargeMove("Tung Tung Bong", 15, //Tung Tung Man
                     "Tung Tung Man charges a powerful attack!");
+
             case 3:
-                return new ChargeMove(
-                    "Ultimate Calculation",
-                    23,
-                    "Calculator charges a powerful attack!"
-                );
+                return new MathMove();
+
             case 4:
                 return new ChargeMove("Paper Cut", 21,
                     "Angry Book charges a devastating paper cut!");
@@ -108,11 +107,17 @@ public class EnemyFactory {
                         "Tung Tung Man charges a powerful attack!")
                 };
 
+
             case 3:
-                return new Move[]{
-                    new DamageMove("Calculate", 18,
-                        "Calculator uses Calculate!")
+                return new Move[] {
+                    new DamageMove(
+                        "Calculate",
+                        18,
+                        "Calculator uses Calculate!"
+                    ),
+                    new MathMove()
                 };
+
 
             case 4:
                 return new Move[]{

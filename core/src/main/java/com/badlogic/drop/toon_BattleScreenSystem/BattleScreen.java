@@ -18,6 +18,7 @@ import com.badlogic.drop.ot_MoveSkillsSystem.ChargeMove;
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.drop.ot_MoveSkillsSystem.IntimidateMove;
+import com.badlogic.drop.ot_MoveSkillsSystem.MathMove;
 
 // OOP Inheritance: BattleScreen extends ScreenAdapter.
 // This class controls the game's flow, not how each image is drawn.
@@ -94,6 +95,31 @@ public class BattleScreen extends ScreenAdapter {
     private Move specialSkillMove;
 
     private Move[] enemyMoves;
+
+    // Calculator's Math status
+    private int mathTurnsRemaining = 0;
+    private int calculatorOriginalAttack = 0;
+    private int playerOriginalAttack = 0;
+    private boolean mathEffectActive = false;
+    // Calculator Math animation sequence
+    private enum MathAnimationState {
+        NONE,
+        ENEMY_BUFF,
+        PLAYER_DEBUFF
+    }
+
+    private MathAnimationState mathAnimationState = MathAnimationState.NONE;
+
+    private float mathAnimationTimer = 0f;
+
+    private static final float MATH_ENEMY_EFFECT_DURATION = 0.45f;
+    private static final float MATH_PLAYER_EFFECT_DURATION = 0.45f;
+
+    // Mathmind sprite is shown only briefly when Math is used
+    private float mathSpriteTimer = 0f;
+    private static final float MATH_SPRITE_DURATION = 0.75f;
+    private boolean showingMathSprite = false;
+
 
     private Sound buttonSound;
 
@@ -187,7 +213,7 @@ public class BattleScreen extends ScreenAdapter {
         battle = new Battle(player, enemy);
         battle.startBattle();
         //1 move
-        splashHit = new DamageMove("Slash Hit", 10,
+        splashHit = new DamageMove("Slash Hit", 1000,
             "Insecure Sword attacks Garlic Man!");
 
         //2 move
@@ -198,10 +224,11 @@ public class BattleScreen extends ScreenAdapter {
         );
 
         //3 move
+        // 3 move: Cure
         healMove = new HealMove(
-            "Heal",
-            50,
-            "Insecure Sword restores 50 HP!"
+            "Cure",
+            1,
+            "Restores 30-50 HP"
         );
         //select sound
         buttonSound = Gdx.audio.newSound(
@@ -495,9 +522,32 @@ public class BattleScreen extends ScreenAdapter {
                 boolean shieldWasActive = showShield;
 
                 // Keep using the same ChargeMove object while charging.
-                if (!(enemyMove instanceof ChargeMove
-                    && ((ChargeMove) enemyMove).isCharged())) {
-                    enemyMove = enemyMoves[random.nextInt(enemyMoves.length)];
+                // Round 3: Calculator chooses its move.
+                // Round 3: Calculator chooses its move.
+                if (round == 3) {
+                    if (mathEffectActive) {
+                        // Math buff is active: use Calculate only.
+                        enemyMove = new DamageMove(
+                            "Calculate",
+                            18,
+                            "Calculator uses Calculate!"
+                        );
+                    } else {
+                        // No Math buff: randomly choose Calculate or Math.
+                        enemyMove = random.nextBoolean()
+                            ? new MathMove()
+                            : new DamageMove(
+                            "Calculate",
+                            18,
+                            "Calculator uses Calculate!"
+                        );
+                    }
+                } else {
+                    // Other enemies keep their existing Charge behavior.
+                    if (!(enemyMove instanceof ChargeMove
+                        && ((ChargeMove) enemyMove).isCharged())) {
+                        enemyMove = enemyMoves[random.nextInt(enemyMoves.length)];
+                    }
                 }
 
 
@@ -525,7 +575,11 @@ public class BattleScreen extends ScreenAdapter {
                     result = battle.enemyTurn(enemyMove);
                 }
 
-
+                boolean usedMath = enemyMove instanceof MathMove
+                    && ((MathMove) enemyMove).hasBeenUsed();
+                if (usedMath) {
+                    activateMathEffect((MathMove) enemyMove);
+                }
 
 
 
@@ -601,8 +655,8 @@ public class BattleScreen extends ScreenAdapter {
                     waitingForEnemyAnimation = false;
                     animationTimer = 0f;
                     enemyTurnTimer = 0f;
-                }
-                else if (enemyIsCharging) {
+                } else if (usedMath) {
+                }else if (enemyIsCharging) {
 
 
                     renderer.playEnemyBuffAnimation();
@@ -652,6 +706,7 @@ public class BattleScreen extends ScreenAdapter {
                 System.out.println(
                     "Sword HP: " + player.getCurrentHp()
                 );
+                tickMathDuration();
 
             }
         }
@@ -769,6 +824,28 @@ public class BattleScreen extends ScreenAdapter {
                 playerHitFlashTimer = 0f;
             }
         }
+
+        // Update Calculator Math animation sequence.
+        if (mathAnimationState != MathAnimationState.NONE) {
+            mathAnimationTimer -= delta;
+
+            if (mathAnimationTimer <= 0f) {
+                if (mathAnimationState == MathAnimationState.ENEMY_BUFF) {
+                    // Red Calculator effect finished.
+                    // Now play the purple player debuff effect.
+                    mathAnimationState = MathAnimationState.PLAYER_DEBUFF;
+                    mathAnimationTimer = MATH_PLAYER_EFFECT_DURATION;
+
+                    // Play the debuff sound once.
+                    debuffSound.play(0.5f);
+                } else {
+                    // Both effects finished.
+                    mathAnimationState = MathAnimationState.NONE;
+                    mathAnimationTimer = 0f;
+                }
+            }
+        }
+
         // Update Sharpen animation every frame.
         if (playerRedFlashTimer > 0f) {
             playerRedFlashTimer -= delta;
@@ -827,10 +904,29 @@ public class BattleScreen extends ScreenAdapter {
             }
         }
 
+
+        if (showingMathSprite) {
+            mathSpriteTimer -= delta;
+
+            if (mathSpriteTimer <= 0f) {
+                mathSpriteTimer = 0f;
+                showingMathSprite = false;
+
+                currentSprite = assets.getIdle(round);
+                waitingForEnemyAnimation = false;
+            }
+        }
+
+
+
         renderer.setLifeStealActive(lifeStealActive);
         renderer.setImmortalActive(immortalActive);
         renderer.setStunActive(stunActive);
         renderer.drawStunEffect(stunEffectTimer);
+        renderer.setMathAnimation(
+            mathAnimationState.name(),
+            mathAnimationTimer
+        );
 
         renderer.render(
             assets,
@@ -939,6 +1035,25 @@ public class BattleScreen extends ScreenAdapter {
             }
         }
     }
+
+
+    private void tickMathDuration() {
+        if (!mathEffectActive) {
+            return;
+        }
+
+        mathTurnsRemaining--;
+
+        if (mathTurnsRemaining <= 0) {
+            enemy.setAttack(calculatorOriginalAttack);
+            player.setAttack(playerOriginalAttack);
+
+            mathTurnsRemaining = 0;
+            mathEffectActive = false;
+        }
+    }
+
+
 
 
     private void updateSurrenderNavigation() {
@@ -1267,7 +1382,35 @@ public class BattleScreen extends ScreenAdapter {
         waitingToUseMove = false;
         moveDelayTimer = 0f;
         menuState = MenuState.MAIN_MENU;
+
     }
+
+    private void activateMathEffect(MathMove move) {
+        calculatorOriginalAttack = move.getOriginalEnemyAttack();
+        playerOriginalAttack = move.getOriginalPlayerAttack();
+
+        mathTurnsRemaining = 3;
+        mathEffectActive = true;
+
+        // Show Mathmind briefly and block input during the animation.
+        currentSprite = assets.getMathmind();
+        mathSpriteTimer = MATH_SPRITE_DURATION;
+        showingMathSprite = true;
+
+        mathAnimationState = MathAnimationState.ENEMY_BUFF;
+        mathAnimationTimer = MATH_ENEMY_EFFECT_DURATION;
+
+        // Play the buff sound when Calculator starts the Math animation.
+        if (enemyChargeSound != null) {
+            enemyChargeSound.play(0.5f);
+        }
+
+        animationTimer = 0f;
+        waitingForEnemyAnimation = true;
+    }
+
+
+
 
 
     // ROUND TRANSITION

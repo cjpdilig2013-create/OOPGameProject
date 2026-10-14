@@ -11,10 +11,12 @@ public class EnemyAssets {
     private final Texture garlicBackground, tungBackground, calcBackground, bookBackground, nekBackground;
     private final Texture insecureSword;
     private final Texture[] garlicSprites, tungSprites, calcSprites, bookSprites, nekSprites;
+    private final Texture mathmindSprite;
     private final Music garlicMusic, tungMusic, calcMusic, bookMusic, nekMusic;
     private final Sound garlicAttackSound, tungAttackSound, calcAttackSound,
         bookAttackSound, nekAttackSound, enemyDefeatedSound;
     private Music battleMusic;
+
 
     public EnemyAssets() {
         //Backgrounds for the enemies. (Can see it battle)
@@ -40,12 +42,17 @@ public class EnemyAssets {
             new Texture("enemies/tung_tung-hurt.png"),
             new Texture("enemies/tung_tung-dead.png")
         };
+
         calcSprites = new Texture[] {
             new Texture("enemies/calc-idle.png"),
             new Texture("enemies/calc-attack.png"),
             new Texture("enemies/calc-hurt.png"),
             new Texture("enemies/calc-dead.png")
         };
+
+        mathmindSprite = new Texture("enemies/Mathmind.png");
+        setNearest(mathmindSprite);
+
 
         bookSprites = new Texture[] {
             new Texture("enemies/book-idle.png"),
@@ -89,6 +96,9 @@ public class EnemyAssets {
         bookAttackSound = Gdx.audio.newSound(Gdx.files.internal("sounds/book-attack.mp3"));
         nekAttackSound = Gdx.audio.newSound(Gdx.files.internal("sounds/nek-attack.mp3"));
         enemyDefeatedSound = Gdx.audio.newSound(Gdx.files.internal("sounds/enemydefeated-1.mp3"));
+    }
+    public Texture getMathmind() {
+        return mathmindSprite;
     }
 
     private void setNearest(Texture texture) {
@@ -182,5 +192,6 @@ public class EnemyAssets {
         calcMusic.dispose();
         bookMusic.dispose();
         nekMusic.dispose();
+        mathmindSprite.dispose();
     }
 }

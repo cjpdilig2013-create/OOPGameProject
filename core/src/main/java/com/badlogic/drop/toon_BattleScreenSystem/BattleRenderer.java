@@ -14,6 +14,7 @@ import java.util.Random;
 import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 
+
 // Sword idle animation
 
 
@@ -91,12 +92,23 @@ public class BattleRenderer {
     private String noteInputText = "";
     private float stunEffectTimer = 0f;
 
+    // Calculator Math animation
+    private String mathAnimationState = "NONE";
+    private float mathAnimationTimer = 0f;
+
+    public void setMathAnimation(String state, float timer) {
+        mathAnimationState = state;
+        mathAnimationTimer = timer;
+    }
+
+
     public void setShowNoteInput(boolean show) {
         this.showNoteInput = show;
     }
 
     private Texture activeAirSlashTexture;
     private boolean lifeStealActive = false;
+
 
     public void setNoteInputText(String text) {
         this.noteInputText = (text == null) ? "" : text;
@@ -242,8 +254,7 @@ public class BattleRenderer {
         if (buffSound != null) {
             buffSound.play(0.4f);
         }
-        stunBuffTimer = STUN_BUFF_DURATION;
-        buffAnimationTimer = STUN_BUFF_DURATION;
+        buffAnimationTimer = BUFF_ANIMATION_DURATION;
     }
 
 
@@ -337,7 +348,7 @@ public class BattleRenderer {
 
     public void playStunBuffAnimation() {
         stunBuffTimer = STUN_BUFF_DURATION;
-        buffAnimationTimer = STUN_BUFF_DURATION;
+        buffAnimationTimer = BUFF_ANIMATION_DURATION;
 
         if (buffSound != null) {
             buffSound.play(0.4f);
@@ -465,7 +476,8 @@ public class BattleRenderer {
             0f, intimidateTimer - enemyDelta
         );
 
-        // Charge: grow briefly and turn red
+
+        // Charge animation
         float enemyBuffScale = 1f;
 
         if (enemyRedFlashTimer > 0f) {
@@ -476,7 +488,19 @@ public class BattleRenderer {
                 * (float) Math.sin(progress * Math.PI);
         }
 
-        // Intimidate: shrink briefly and turn purple
+        // Math: Calculator grows and turns red first.
+        boolean mathEnemyEffect =
+            "ENEMY_BUFF".equals(mathAnimationState);
+
+        if (mathEnemyEffect) {
+            float progress = 1f
+                - mathAnimationTimer / 0.45f;
+
+            enemyBuffScale = 1f + 0.15f
+                * (float) Math.sin(progress * Math.PI);
+        }
+
+        // Intimidate animation
         float intimidateScale = 1f;
 
         if (intimidateTimer > 0f) {
@@ -490,8 +514,9 @@ public class BattleRenderer {
         float finalEnemyScale = enemyBuffScale * intimidateScale;
         float buffedEnemySize = enemySize * finalEnemyScale;
 
-        // Preserve enemy transparency and choose the animation color
-        if (intimidateTimer > 0f) {
+        if (mathEnemyEffect) {
+            batch.setColor(1f, 0f, 0f, enemyAlpha);
+        } else if (intimidateTimer > 0f) {
             batch.setColor(
                 INTIMIDATE_PURPLE_R,
                 INTIMIDATE_PURPLE_G,
@@ -504,12 +529,21 @@ public class BattleRenderer {
             batch.setColor(1f, 1f, 1f, enemyAlpha);
         }
 
+
+
         float drawWidth = buffedEnemySize;
         float drawHeight = buffedEnemySize;
 
         if (currentSprite == heavyTungTexture) {
             drawWidth *= 2f;
             drawHeight *= 2f;
+        }
+
+        // ขยาย Mathmind เฉพาะตอน Calculator ใช้ Math
+        if (round == 3 && currentSprite == assets.getMathmind()) {
+            float mathScale = 1.25f; //
+            drawWidth *= mathScale;
+            drawHeight *= mathScale;
         }
 
         // ขยายจากจุดกึ่งกลางของศัตรู
@@ -523,6 +557,7 @@ public class BattleRenderer {
             drawWidth,
             drawHeight
         );
+
 
         // Draw the Stun effect above the enemy.
 
@@ -631,6 +666,10 @@ public class BattleRenderer {
             0f,
             doubleSlashBuffTimer - delta
         );
+        stunBuffTimer = Math.max(
+            0f,
+            stunBuffTimer - delta
+        );
 
 
         // Smoothly enlarge and shrink the sword
@@ -649,8 +688,22 @@ public class BattleRenderer {
         );
 
 
+
         float buffScale =
             1f + (BUFF_MAX_SCALE - 1f) * buffProgress;
+
+        // Math: player shrinks briefly during the purple debuff.
+        boolean mathPlayerEffect =
+            "PLAYER_DEBUFF".equals(mathAnimationState);
+
+        if (mathPlayerEffect) {
+            float progress = 1f
+                - mathAnimationTimer / 0.45f;
+
+            buffScale *= 1f - 0.10f
+                * (float) Math.sin(progress * Math.PI);
+        }
+
 
         float swordOffsetY =
             (float) Math.sin(swordAnimationTimer * SWORD_FLOAT_SPEED)
@@ -749,28 +802,31 @@ public class BattleRenderer {
                     playerWidth,
                     playerSize
                 );
+                // Choose the sword color while an animation is active
+                if (mathPlayerEffect) {
+                    // Math debuff: purple
+                    batch.setColor(0.65f, 0.30f, 0.90f, 1f);
 
-
-                // ดาบปกติ พร้อมเอฟเฟกต์ Buff และ Immortal
-
-                if (redFlashTimer > 0f) {
-                    // Sharpen: สีแดง
+                }
+                // Choose the sword color while an animation is active
+                else if (redFlashTimer > 0f) {
+                    // Sharpen: red
                     batch.setColor(1f, 0f, 0f, 1f);
 
                 } else if (stunBuffTimer > 0f) {
-                    // Stun: สีเหลือง
+                    // Stun: yellow briefly
                     batch.setColor(1f, 0.9f, 0.1f, 1f);
 
-                } else if (immortalBuffTimer > 0f || immortalActive) {
-                    // Immortal: สีฟ้า
+                } else if (immortalActive) {
+                    // Immortal: stay blue while the buff is active
                     batch.setColor(0.2f, 0.65f, 1f, 1f);
 
                 } else if (lifeStealBuffTimer > 0f) {
-                    // LifeSteal: สีเขียว
+                    // LifeSteal: green
                     batch.setColor(0.2f, 1f, 0.2f, 1f);
 
                 } else if (doubleSlashBuffTimer > 0f) {
-                    // DoubleSlash: สีส้ม
+                    // DoubleSlash: orange
                     batch.setColor(1f, 0.5f, 0.1f, 1f);
 
                 } else {

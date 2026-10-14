@@ -12,6 +12,7 @@ public class EnemyAssets {
     private final Texture insecureSword;
     private final Texture[] garlicSprites, tungSprites, calcSprites, bookSprites, nekSprites;
     private final Texture mathmindSprite;
+    private final Texture mindBookSprite;
     private final Music garlicMusic, tungMusic, calcMusic, bookMusic, nekMusic;
     private final Sound garlicAttackSound, tungAttackSound, calcAttackSound,
         bookAttackSound, nekAttackSound, enemyDefeatedSound;
@@ -52,6 +53,9 @@ public class EnemyAssets {
 
         mathmindSprite = new Texture("enemies/Mathmind.png");
         setNearest(mathmindSprite);
+        // Special sprite used only when Angry Book activates its special move.
+        mindBookSprite = new Texture("enemies/MindBook.png");
+        setNearest(mindBookSprite);
 
 
         bookSprites = new Texture[] {
@@ -99,6 +103,9 @@ public class EnemyAssets {
     }
     public Texture getMathmind() {
         return mathmindSprite;
+    }
+    public Texture getMindBook() {
+        return mindBookSprite;
     }
 
     private void setNearest(Texture texture) {
@@ -193,5 +200,6 @@ public class EnemyAssets {
         bookMusic.dispose();
         nekMusic.dispose();
         mathmindSprite.dispose();
+        mindBookSprite.dispose();
     }
 }

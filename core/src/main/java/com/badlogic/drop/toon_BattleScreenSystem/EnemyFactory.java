@@ -6,6 +6,8 @@ import com.badlogic.drop.ot_MoveSkillsSystem.Move;
 import com.badlogic.drop.ot_MoveSkillsSystem.ChargeMove;
 import com.badlogic.drop.ot_MoveSkillsSystem.EnemyBuffMove;
 import com.badlogic.drop.ot_MoveSkillsSystem.MathMove;
+import com.badlogic.drop.ot_MoveSkillsSystem.EnemyBuffMove;
+import com.badlogic.drop.ot_MoveSkillsSystem.MindLockMove;
 
 //Enemy Factory is where we create the Spirtes for the Enemies
 //This includes there Stats (HP, Attack, etc.) and also there Move names and the damage it does
@@ -120,9 +122,17 @@ public class EnemyFactory {
 
 
             case 4:
-                return new Move[]{
-                    new DamageMove("Paper Cut", 21,
-                        "Angry Book uses Paper Cut!")
+                return new Move[] {
+                    new DamageMove(
+                        "Paper Cut",
+                        21,
+                        "Angry Book uses Paper Cut!"
+                    ),
+                    new MindLockMove(
+                        "Mind Lock",
+                        0,
+                        "Angry Book uses Mind Lock!"
+                    )
                 };
 
             case 5:

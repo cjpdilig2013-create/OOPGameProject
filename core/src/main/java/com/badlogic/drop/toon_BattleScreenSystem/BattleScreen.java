@@ -19,6 +19,7 @@ import com.badlogic.gdx.Game;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.drop.ot_MoveSkillsSystem.IntimidateMove;
 import com.badlogic.drop.ot_MoveSkillsSystem.MathMove;
+import com.badlogic.drop.ot_MoveSkillsSystem.MindLockMove;
 
 // OOP Inheritance: BattleScreen extends ScreenAdapter.
 // This class controls the game's flow, not how each image is drawn.
@@ -101,12 +102,24 @@ public class BattleScreen extends ScreenAdapter {
     private int calculatorOriginalAttack = 0;
     private int playerOriginalAttack = 0;
     private boolean mathEffectActive = false;
+    private boolean mindLockActivatedThisTurn = false;
+
     // Calculator Math animation sequence
     private enum MathAnimationState {
         NONE,
         ENEMY_BUFF,
         PLAYER_DEBUFF
     }
+
+    // Angry Book: Mind Lock
+    private int noteLockTurnsRemaining = 0;
+
+    private boolean showingMindBookSprite = false;
+    private float mindBookSpriteTimer = 0f;
+    private static final float MINDBOOK_SPRITE_DURATION = 0.75f;
+    // Mind Lock debuff effect on player
+    private float mindLockDebuffTimer = 0f;
+    private static final float MIND_LOCK_DEBUFF_DURATION = 0.5f;
 
     private MathAnimationState mathAnimationState = MathAnimationState.NONE;
 
@@ -283,10 +296,20 @@ public class BattleScreen extends ScreenAdapter {
                 return;
             }
 
+
             renderer.setCurrentMenu(menuState.name());
             renderer.setSelectedChoice(selectedChoice);
+
             renderer.setShowNoteInput(typingNote);
             renderer.setNoteInputText(noteInput.toString());
+            renderer.setNoteLocked(noteLockTurnsRemaining > 0);
+
+            System.out.println(
+                "Menu: " + menuState.name()
+                    + " | Note locked: " + (noteLockTurnsRemaining > 0)
+            );
+
+
             renderer.render(
                 assets, currentSprite, player, enemy, round,
                 battleMessage, showPlayerSword, airSlashActive,
@@ -376,13 +399,18 @@ public class BattleScreen extends ScreenAdapter {
                             battleMessage = "Choose your move!";
                             break;
 
+
                         case 1:
-                            if (renderer.getAttachedNoteCount() < round) {
+                            if (noteLockTurnsRemaining > 0) {
+                                battleMessage = "Mind Lock! NOTE is sealed for "
+                                    + noteLockTurnsRemaining + " turns!";
+                            } else if (renderer.getAttachedNoteCount() < round) {
                                 startNoteTyping();
                             } else {
                                 battleMessage = "No more NOTE available this round!";
                             }
                             break;
+
 
 
                         case 2:
@@ -402,22 +430,21 @@ public class BattleScreen extends ScreenAdapter {
 
             } else if (menuState == MenuState.NOTE_CONFIRM) {
                 if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
+
                     if (selectedNoteChoice == 0) {
-                        if (renderer.getAttachedNoteCount() < round) {
-
-                            // Open the text input dialog.
+                        if (noteLockTurnsRemaining > 0) {
+                            battleMessage = "Mind Lock! NOTE is sealed for "
+                                + noteLockTurnsRemaining + " turns!";
                             menuState = MenuState.MAIN_MENU;
-
+                        } else if (renderer.getAttachedNoteCount() < round) {
+                            menuState = MenuState.MAIN_MENU;
                             startNoteTyping();
-
                         } else {
                             battleMessage = "No more NOTE available this round!";
                             menuState = MenuState.MAIN_MENU;
                         }
-                    } else {
-                        battleMessage = "You chose not to use NOTE.";
-                        menuState = MenuState.MAIN_MENU;
                     }
+
 
                     selectedChoice = 1;
                 }
@@ -544,10 +571,17 @@ public class BattleScreen extends ScreenAdapter {
                     }
                 } else {
                     // Other enemies keep their existing Charge behavior.
+
                     if (!(enemyMove instanceof ChargeMove
                         && ((ChargeMove) enemyMove).isCharged())) {
-                        enemyMove = enemyMoves[random.nextInt(enemyMoves.length)];
+
+                        do {
+                            enemyMove = enemyMoves[random.nextInt(enemyMoves.length)];
+                        } while (round == 4
+                            && noteLockTurnsRemaining > 0
+                            && enemyMove instanceof MindLockMove);
                     }
+
                 }
 
 
@@ -560,19 +594,29 @@ public class BattleScreen extends ScreenAdapter {
 
                 String result;
 
-
-
+                boolean usedMindLock = false;
 
                 if (enemyWasStunned) {
                     enemySkippedTurn = true;
                     result = battle.skipEnemyTurn();
-
-                    // Consume Stun after skipping one turn.
                     enemyStunned = false;
-
                 } else {
                     enemySkippedTurn = false;
                     result = battle.enemyTurn(enemyMove);
+
+                    if (round == 4 && enemyMove instanceof MindLockMove) {
+                        noteLockTurnsRemaining = 3;
+                        System.out.println(
+                            "Mind Lock activated! Turns = " + noteLockTurnsRemaining
+                        );
+                        renderer.playMindLockDebuffAnimation();
+
+                        currentSprite = assets.getMindBook();
+                        showingMindBookSprite = true;
+                        mindBookSpriteTimer = MINDBOOK_SPRITE_DURATION;
+                        animationTimer = 0f;
+                        waitingForEnemyAnimation = true;
+                    }
                 }
 
                 boolean usedMath = enemyMove instanceof MathMove
@@ -656,6 +700,8 @@ public class BattleScreen extends ScreenAdapter {
                     animationTimer = 0f;
                     enemyTurnTimer = 0f;
                 } else if (usedMath) {
+                } else if (usedMindLock) {
+                    // Keep MindBook sprite visible for a short time.
                 }else if (enemyIsCharging) {
 
 
@@ -707,6 +753,16 @@ public class BattleScreen extends ScreenAdapter {
                     "Sword HP: " + player.getCurrentHp()
                 );
                 tickMathDuration();
+                tickNoteLockDuration();
+                if (round == 4 && enemyMove instanceof MindLockMove) {
+                    noteLockTurnsRemaining = 3;
+
+                    currentSprite = assets.getMindBook();
+                    showingMindBookSprite = true;
+                    mindBookSpriteTimer = MINDBOOK_SPRITE_DURATION;
+                    animationTimer = 0f;
+                    waitingForEnemyAnimation = true;
+                }
 
             }
         }
@@ -716,6 +772,13 @@ public class BattleScreen extends ScreenAdapter {
             if (airSlashTimer <= 0f) {
                 airSlashActive = false;
                 airSlashTimer = 0f;
+            }
+        }
+        if (mindLockDebuffTimer > 0f) {
+            mindLockDebuffTimer -= delta;
+
+            if (mindLockDebuffTimer < 0f) {
+                mindLockDebuffTimer = 0f;
             }
         }
             // Wait for the first slash effect to finish before the second hit.
@@ -903,6 +966,17 @@ public class BattleScreen extends ScreenAdapter {
                 stunEffectTimer = 0f;
             }
         }
+        if (showingMindBookSprite) {
+            mindBookSpriteTimer -= delta;
+
+            if (mindBookSpriteTimer <= 0f) {
+                mindBookSpriteTimer = 0f;
+                showingMindBookSprite = false;
+
+                currentSprite = assets.getIdle(round);
+                waitingForEnemyAnimation = false;
+            }
+        }
 
 
         if (showingMathSprite) {
@@ -927,6 +1001,7 @@ public class BattleScreen extends ScreenAdapter {
             mathAnimationState.name(),
             mathAnimationTimer
         );
+
 
         renderer.render(
             assets,
@@ -1035,6 +1110,17 @@ public class BattleScreen extends ScreenAdapter {
             }
         }
     }
+
+    private void tickNoteLockDuration() {
+        if (noteLockTurnsRemaining > 0) {
+            noteLockTurnsRemaining--;
+
+            if (noteLockTurnsRemaining == 0) {
+                battleMessage += "\nMind Lock has ended! NOTE is available again.";
+            }
+        }
+    }
+
 
 
     private void tickMathDuration() {
@@ -1420,6 +1506,7 @@ public class BattleScreen extends ScreenAdapter {
     // This also leaves room to add your healing mechanic later.
     private void startNextRound() {
         enemyDying = false;
+        noteLockTurnsRemaining = 0;
         enemyDeathFadeTimer = 0f;
         enemyFadeTimer = 0f;
 

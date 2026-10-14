@@ -142,8 +142,13 @@ public class BattleRenderer {
     private float doubleSlashBuffTimer = 0f;
     private static final float DOUBLE_SLASH_BUFF_DURATION = 0.3f;
 
+    private Texture xEffectTexture;
+
     // Intimidate animation
     private float intimidateTimer = 0f;
+    // Mind Lock debuff animation
+    private float mindLockDebuffTimer = 0f;
+    private static final float MIND_LOCK_DEBUFF_DURATION = 0.5f;
     private static final float INTIMIDATE_DURATION = 0.35f;
     private static final float INTIMIDATE_PURPLE_R = 0.65f;
     private static final float INTIMIDATE_PURPLE_G = 0.30f;
@@ -198,6 +203,9 @@ public class BattleRenderer {
         );
         playerHitTexture = new Texture(
             Gdx.files.internal("creatures/swordgethit.png")
+        );
+        xEffectTexture = new Texture(
+            Gdx.files.internal("effect/Xeffect.png")
         );
 
         for (int i = 0; i < noteTextures.length; i++) {
@@ -311,6 +319,11 @@ public class BattleRenderer {
     public void setSelectedChoice(int selectedChoice) {
         this.selectedChoice = selectedChoice;
     }
+    private boolean noteLocked = false;
+
+    public void setNoteLocked(boolean locked) {
+        this.noteLocked = locked;
+    }
 
     public void setShowAttackMenu(boolean show) {
         this.showAttackMenu = show;
@@ -375,6 +388,9 @@ public class BattleRenderer {
     }
     public void playIntimidateAnimation() {
         intimidateTimer = INTIMIDATE_DURATION;
+    }
+    public void playMindLockDebuffAnimation() {
+        mindLockDebuffTimer = MIND_LOCK_DEBUFF_DURATION;
     }
 
     // ONE rendering entry point shared by Garlic Man and Tung Tung Man.
@@ -546,9 +562,20 @@ public class BattleRenderer {
             drawHeight *= mathScale;
         }
 
+        // ขยาย MindBook เฉพาะตอนแสดงภาพ MindBook.png
+        if (round == 4
+            && currentSprite == assets.getMindBook()) {
+            float mindBookScale = 1.25f;
+            drawWidth *= mindBookScale;
+            drawHeight *= mindBookScale;
+        }
+
+
         // ขยายจากจุดกึ่งกลางของศัตรู
         float drawX = enemyX + (enemySize - drawWidth) / 2f;
         float drawY = enemyY + (enemySize - drawHeight) / 2f;
+
+
 
         batch.draw(
             currentSprite,
@@ -691,6 +718,12 @@ public class BattleRenderer {
 
         float buffScale =
             1f + (BUFF_MAX_SCALE - 1f) * buffProgress;
+        mindLockDebuffTimer = Math.max(
+            0f,
+            mindLockDebuffTimer - delta
+        );
+
+        boolean mindLockPlayerEffect = mindLockDebuffTimer > 0f;
 
         // Math: player shrinks briefly during the purple debuff.
         boolean mathPlayerEffect =
@@ -701,6 +734,13 @@ public class BattleRenderer {
                 - mathAnimationTimer / 0.45f;
 
             buffScale *= 1f - 0.10f
+                * (float) Math.sin(progress * Math.PI);
+        }
+        if (mindLockPlayerEffect) {
+            float progress =
+                1f - mindLockDebuffTimer / MIND_LOCK_DEBUFF_DURATION;
+
+            buffScale *= 1f - 0.15f
                 * (float) Math.sin(progress * Math.PI);
         }
 
@@ -803,10 +843,13 @@ public class BattleRenderer {
                     playerSize
                 );
                 // Choose the sword color while an animation is active
-                if (mathPlayerEffect) {
-                    // Math debuff: purple
+                if (mindLockPlayerEffect) {
+                    // Mind Lock: purple
                     batch.setColor(0.65f, 0.30f, 0.90f, 1f);
 
+                } else if (mathPlayerEffect) {
+                    // Math debuff: purple
+                    batch.setColor(0.65f, 0.30f, 0.90f, 1f);
                 }
                 // Choose the sword color while an animation is active
                 else if (redFlashTimer > 0f) {
@@ -1235,6 +1278,12 @@ public class BattleRenderer {
                 break;
         }
 
+
+
+
+
+
+
         float[] textX = {
             menuX + gap + 8f,
             menuX + gap + cellWidth + gap + 8f,
@@ -1259,8 +1308,27 @@ public class BattleRenderer {
                 font.draw(batch, options[i], textX[i], textY[i]);
             }
         }
+        System.out.println(
+            "noteLocked = " + noteLocked
+                + ", currentMenu = " + currentMenu
+        );
+
+        // แสดง X เฉพาะเมื่อ NOTE ถูก Mind Lock และอยู่หน้าเมนูหลัก
+        if (noteLocked && "MAIN_MENU".equals(currentMenu)) {
+            float xSize = screenHeight * 0.15f;
+
+            batch.draw(
+                xEffectTexture,
+                textX[1] + 10f,
+                textY[1] - xSize * 0.75f,
+                xSize,
+                xSize
+            );
+
+        }
 
         batch.end();
+
     }
 
     private void drawNoteInputPanel(String noteInput) {
@@ -1489,6 +1557,9 @@ public class BattleRenderer {
         }
         if (heavyTungTexture != null) {
             heavyTungTexture.dispose();
+        }
+        if (xEffectTexture != null) {
+            xEffectTexture.dispose();
         }
 
     }

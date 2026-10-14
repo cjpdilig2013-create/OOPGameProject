@@ -13,7 +13,7 @@ public class MathMove extends Move {
         super(
             "Math",
             0,
-            "Doubles Calculator's Attack and halves the player's Attack."
+            "Doubles the user's Attack and halves the target's Attack."
         );
     }
 

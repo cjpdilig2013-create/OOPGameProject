@@ -17,15 +17,15 @@ public class EnemyFactory {
     public static Enemy createEnemy(int round) {
         switch (round) {
             case 1:
-                return new Enemy("Garlic Man", 60, 12, 8, 12);
+                return new Enemy("Garlic Man", 60, 12, 8, 10);
             case 2:
-                return new Enemy("Tung Tung Man", 100, 18, 10, 14);
+                return new Enemy("Tung Tung Man", 100, 18, 10, 10);
             case 3:
-                return new Enemy("Calculator", 120, 21, 12, 15);
+                return new Enemy("Calculator", 150, 25, 14, 10);
             case 4:
-                return new Enemy("Angry Book", 140, 24, 14, 16);
+                return new Enemy("Angry Book", 180, 30, 18, 10);
             case 5:
-                return new Enemy("Professor Boss", 170, 28, 16, 18);
+                return new Enemy("Professor Boss", 200, 25, 20, 10);
             default:
                 throw new IllegalArgumentException("Unknown round: " + round);
         }
@@ -135,13 +135,29 @@ public class EnemyFactory {
                     )
                 };
 
+
+
             case 5:
                 return new Move[]{
-                    new DamageMove("Final Exam", 25,
-                        "Professor Boss uses Final Exam!"),
-                    new ChargeMove("Ultimate Final Exam", 30,
-                        "Professor Boss charges the final exam attack!")
+                    new DamageMove(
+                        "Final Exam",
+                        25,
+                        "Professor Boss uses Final Exam!"
+                    ),
+                    new ChargeMove(
+                        "Ultimate Final Exam",
+                        30,
+                        "Professor Boss charges the final exam attack!"
+                    ),
+                    new MathMove(),
+                    new MindLockMove(
+                        "Mind Lock",
+                        0,
+                        "Professor Nek uses Mind Lock!"
+                    )
                 };
+
+
 
             default:
                 throw new IllegalArgumentException(

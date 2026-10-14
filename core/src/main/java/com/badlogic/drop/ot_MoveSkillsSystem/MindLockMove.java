@@ -13,6 +13,6 @@ public class MindLockMove extends Move {
     public String use(Creature user, Creature target) {
         return user.getName()
             + " uses Mind Lock!\n"
-            + "NOTE has been sealed for 3 turns!";
+            + "NOTE has been sealed for 2 turns!";
     }
 }

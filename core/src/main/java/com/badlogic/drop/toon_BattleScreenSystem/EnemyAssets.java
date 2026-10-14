@@ -13,6 +13,9 @@ public class EnemyAssets {
     private final Texture[] garlicSprites, tungSprites, calcSprites, bookSprites, nekSprites;
     private final Texture mathmindSprite;
     private final Texture mindBookSprite;
+    private final Texture heavyNekSprite;
+    private final Texture mindNekSprite;
+
     private final Music garlicMusic, tungMusic, calcMusic, bookMusic, nekMusic;
     private final Sound garlicAttackSound, tungAttackSound, calcAttackSound,
         bookAttackSound, nekAttackSound, enemyDefeatedSound;
@@ -56,6 +59,14 @@ public class EnemyAssets {
         // Special sprite used only when Angry Book activates its special move.
         mindBookSprite = new Texture("enemies/MindBook.png");
         setNearest(mindBookSprite);
+        // Special sprite used when Nek activates Charge.
+        heavyNekSprite = new Texture("enemies/HeavyNek.png");
+        setNearest(heavyNekSprite);
+
+        // Special sprite used when Nek activates Math.
+        mindNekSprite = new Texture("enemies/MindNek.png");
+        setNearest(mindNekSprite);
+
 
 
         bookSprites = new Texture[] {
@@ -107,6 +118,13 @@ public class EnemyAssets {
     public Texture getMindBook() {
         return mindBookSprite;
     }
+    public Texture getHeavyNek() {
+        return heavyNekSprite;
+    }
+    public Texture getMindNek() {
+        return mindNekSprite;
+    }
+
 
     private void setNearest(Texture texture) {
         texture.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest);
@@ -201,5 +219,7 @@ public class EnemyAssets {
         nekMusic.dispose();
         mathmindSprite.dispose();
         mindBookSprite.dispose();
+        heavyNekSprite.dispose();
+        mindNekSprite.dispose();
     }
 }

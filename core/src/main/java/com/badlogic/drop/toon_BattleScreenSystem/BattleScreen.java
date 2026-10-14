@@ -50,6 +50,10 @@ public class BattleScreen extends ScreenAdapter {
     private int immortalTurnsRemaining = 0;
     private int immortalOriginalDefendReduction = 0;
 
+    // Stun NOTE
+    private boolean stunActive = false;
+    private boolean enemyStunned = false;
+
     private float enemyTurnTimer = 0f;
     private float enemyFadeTimer = 0f;
     private static final float ENEMY_FADE_DURATION = 0.35f;
@@ -109,6 +113,9 @@ public class BattleScreen extends ScreenAdapter {
     private boolean victoryPending = false;
     private float victoryTimer = 0f;
 
+    private float enemyStunPauseTimer = 0f;
+    private static final float ENEMY_STUN_PAUSE_DURATION = 2.5f;
+
 
     public BattleScreen(Game game) {
         this.game = game;
@@ -121,7 +128,15 @@ public class BattleScreen extends ScreenAdapter {
     private static final float MENU_HIDE_DURATION = 0.3f;
 
     private Sound enemyChargeSound;
+    private Texture stunTexture;
+    private Sound stunSound;
 
+
+    private boolean enemySkippedTurn = false;
+    private float stunEffectTimer = 0f;
+
+
+    private static final float STUN_EFFECT_DURATION = 1.5f;
 
 
     @Override
@@ -138,6 +153,13 @@ public class BattleScreen extends ScreenAdapter {
         );
         enemyChargeSound = Gdx.audio.newSound(
             Gdx.files.internal("sounds/buff01.mp3")
+        );
+        stunTexture = new Texture(
+            Gdx.files.internal("effect/Stun.png")
+        );
+
+        stunSound = Gdx.audio.newSound(
+            Gdx.files.internal("effect/ShockedSoundEffect.mp3")
         );
         // Create renderer + assets only once when this battle screen opens.
         renderer = new BattleRenderer();
@@ -430,6 +452,15 @@ public class BattleScreen extends ScreenAdapter {
                 waitingForEnemyAnimation = false;
             }
         }
+        if (enemyStunPauseTimer > 0f) {
+            enemyStunPauseTimer -= delta;
+
+            if (enemyStunPauseTimer <= 0f) {
+                enemyStunPauseTimer = 0f;
+                waitingForEnemyAnimation = false;
+                currentSprite = assets.getIdle(round);
+            }
+        }
 
 
         // Wait before the current enemy performs its counterattack
@@ -461,16 +492,40 @@ public class BattleScreen extends ScreenAdapter {
                 System.out.println("Turn before enemy action: "
                     + battle.getTurnManager().getCurrentTurn());
 
+
                 boolean wasImmortal = immortalActive;
-                String result = battle.enemyTurn(enemyMove);
+                boolean enemyWasStunned = enemyStunned;
+
+                String result;
+
+
+
+
+                if (enemyWasStunned) {
+                    enemySkippedTurn = true;
+                    result = battle.skipEnemyTurn();
+
+                    // Consume Stun after skipping one turn.
+                    enemyStunned = false;
+
+                } else {
+                    enemySkippedTurn = false;
+                    result = battle.enemyTurn(enemyMove);
+                }
+
+
+
+
 
                 System.out.println("DEBUG ENEMY RESULT: [" + result + "]");
 
                 System.out.println("Enemy result: " + result);
                 boolean enemyIsCharging = result.contains("is charging up");
-                if (!enemyIsCharging && wasImmortal) {
+
+                if (!enemyWasStunned && !enemyIsCharging && wasImmortal) {
                     renderer.playBlockSound();
                 }
+
                 if (!enemyIsCharging && immortalActive) {
                     immortalTurnsRemaining--;
 
@@ -481,14 +536,18 @@ public class BattleScreen extends ScreenAdapter {
 
                 // A charging turn does not consume the shield.
 
+
                 boolean playerWasDamaged =
                     player.getCurrentHp() < previousPlayerHp;
 
-                if (!enemyIsCharging && shieldWasActive) {
+                if (enemyWasStunned) {
+                    // The enemy skipped its turn, so keep the shield active.
+                } else if (!enemyIsCharging && shieldWasActive) {
                     // The shield blocks the incoming attack.
                     renderer.playBlockSound();
                     showShield = false;
                 }
+
 
                 if (playerWasDamaged) {
                     playerHitFlashTimer = PLAYER_HIT_FLASH_DURATION;
@@ -507,8 +566,22 @@ public class BattleScreen extends ScreenAdapter {
                 // Detect whether this turn was spent charging.
                 battleMessage = result;
 
-                if (enemyIsCharging) {
-                    // Play the red charge effect and its matching sound.
+
+
+
+
+                if (enemyWasStunned) {
+                    // Enemy skips its turn and returns to idle.
+                    currentSprite = assets.getIdle(round);
+                    enemyStunPauseTimer = 0f;
+                    enemyFadeTimer = 0f;
+                    waitingForEnemyAnimation = false;
+                    animationTimer = 0f;
+                    enemyTurnTimer = 0f;
+                }
+                else if (enemyIsCharging) {
+
+
                     renderer.playEnemyBuffAnimation();
 
                     if (enemyChargeSound != null) {
@@ -517,13 +590,14 @@ public class BattleScreen extends ScreenAdapter {
 
                     currentSprite = assets.getIdle(round);
                     animationTimer = 0f;
+
                 } else {
-                    // Play attack effects when the enemy releases the attack.
                     assets.playEnemyAttack(round);
                     currentSprite = assets.getAttack(round);
                     animationTimer = 0.75f;
                     waitingForEnemyAnimation = true;
                 }
+
 
                 if (!player.isAlive()) {
                     playerDefeated = true;
@@ -582,6 +656,13 @@ public class BattleScreen extends ScreenAdapter {
                     slashSounds[soundIndex].play();
 
                     battleMessage = secondHitResult;
+                    if (enemy.isAlive() && tryStunEnemy()) {
+                        battleMessage += "\n" + enemyDisplayName + " is stunned!";
+
+                        // Keep the hurt sprite and transparency while stunned.
+                        currentSprite = assets.getHurt(round);
+                        enemyFadeTimer = ENEMY_STUN_PAUSE_DURATION;
+                    }
 
                     if (!enemy.isAlive()) {
                         // The second hit defeated the enemy.
@@ -708,8 +789,18 @@ public class BattleScreen extends ScreenAdapter {
                 + noteInput;
         }
 
+        if (stunEffectTimer > 0f) {
+            stunEffectTimer -= delta;
+
+            if (stunEffectTimer < 0f) {
+                stunEffectTimer = 0f;
+            }
+        }
+
+
         renderer.setLifeStealActive(lifeStealActive);
         renderer.setImmortalActive(immortalActive);
+        renderer.drawStunEffect(stunEffectTimer);
 
         renderer.render(
             assets,
@@ -860,6 +951,15 @@ public class BattleScreen extends ScreenAdapter {
             enemyChargeSound.dispose();
             enemyChargeSound = null;
         }
+        if (stunTexture != null) {
+            stunTexture.dispose();
+            stunTexture = null;
+        }
+
+        if (stunSound != null) {
+            stunSound.dispose();
+            stunSound = null;
+        }
     }
 
 
@@ -880,7 +980,8 @@ public class BattleScreen extends ScreenAdapter {
         if (!"Sharpen".equalsIgnoreCase(keyword)
             && !"DoubleSlash".equalsIgnoreCase(keyword)
             && !"LifeSteal".equalsIgnoreCase(keyword)
-            && !"Immortal".equalsIgnoreCase(keyword)) {
+            && !"Immortal".equalsIgnoreCase(keyword)
+            && !"Stun".equalsIgnoreCase(keyword)) {
             battleMessage = "No such keyword! Choose a command.";
             menuState = MenuState.MAIN_MENU;
             selectedChoice = 0;
@@ -914,7 +1015,11 @@ public class BattleScreen extends ScreenAdapter {
         player.setDefendReduction(9999);
 
         battleMessage = "Immortal activated! 3 turns of invincibility!";
-    }
+    }else if ("Stun".equalsIgnoreCase(keyword)) {
+            stunActive = true;
+            battleMessage =
+                "Stun activated! 15% chance to stun the enemy on every attack!";
+        }
 
 
     // NOTE consumes the player's turn only when valid.
@@ -934,6 +1039,29 @@ public class BattleScreen extends ScreenAdapter {
 
         battleMessage += "\nImmortal has ended!";
     }
+
+
+    private boolean tryStunEnemy() {
+        if (!stunActive || !enemy.isAlive() || enemyStunned) {
+            return false;
+        }
+
+        if (random.nextFloat() < 0.15f) {
+            enemyStunned = true;
+            stunEffectTimer = STUN_EFFECT_DURATION;
+
+            if (stunSound != null) {
+                stunSound.play();
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
+
+
 
     private void applyLifeSteal() {
         if (!lifeStealActive) {
@@ -1028,6 +1156,11 @@ public class BattleScreen extends ScreenAdapter {
                             : "Insecure Sword used Slash Hit!"
                     );
                 }
+
+                if (enemy.isAlive() && tryStunEnemy()) {
+                    battleMessage += "\n" + enemyDisplayName + " is stunned!";
+                }
+
                 applyLifeSteal();
                 break;
 
@@ -1116,6 +1249,13 @@ public class BattleScreen extends ScreenAdapter {
 
         immortalActive = false;
         immortalTurnsRemaining = 0;
+
+        stunActive = false;
+        enemyStunned = false;
+        enemySkippedTurn = false;
+        stunEffectTimer = 0f;
+
+        renderer.drawStunEffect(0f);
 
         renderer.removeNoteFromSword();
         showShield = false;

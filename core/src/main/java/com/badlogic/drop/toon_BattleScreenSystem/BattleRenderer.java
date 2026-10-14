@@ -34,6 +34,8 @@ public class BattleRenderer {
     private Texture shieldTexture;
     private com.badlogic.gdx.audio.Sound shieldSound;
 
+    private Texture stunTexture;
+
     private static final float FLOAT_RADIUS = 12f;
     private static final float FLOAT_SPEED = 2f;
 
@@ -85,6 +87,7 @@ public class BattleRenderer {
 
     private boolean showNoteInput = false;
     private String noteInputText = "";
+    private float stunEffectTimer = 0f;
 
     public void setShowNoteInput(boolean show) {
         this.showNoteInput = show;
@@ -98,6 +101,9 @@ public class BattleRenderer {
     }
     public void setLifeStealActive(boolean active) {
         this.lifeStealActive = active;
+    }
+    public void drawStunEffect(float timer) {
+        stunEffectTimer = timer;
     }
     private boolean immortalActive = false;
     public void setImmortalActive(boolean active) {
@@ -118,6 +124,9 @@ public class BattleRenderer {
         );
         shieldTexture = new Texture(
             Gdx.files.internal("effect/shield8bit.png")
+        );
+        stunTexture = new Texture(
+            Gdx.files.internal("effect/Stun.png")
         );
         shieldSound = Gdx.audio.newSound(
             Gdx.files.internal("sounds/block02.mp3")
@@ -409,6 +418,40 @@ public class BattleRenderer {
             buffedEnemySize,
             buffedEnemySize
         );
+        // Draw the Stun effect above the enemy.
+
+        // Draw the Stun effect above the enemy.
+        if (stunEffectTimer > 0f && enemyAlpha > 0f) {
+            float stunSize = enemySize * 0.8f;
+            float stunX = enemyX + enemySize * 0.1f;
+            float stunY = enemyY + enemySize * 0.05f;
+
+            // Fade out during the final 0.5 seconds.
+            float fadeDuration = 0.5f;
+            float alpha = Math.min(
+                1f,
+                stunEffectTimer / fadeDuration
+            );
+
+            // Apply the calculated alpha to the image.
+            batch.setColor(
+                1f,
+                1f,
+                1f,
+                alpha * enemyAlpha
+            );
+
+            batch.draw(
+                stunTexture,
+                stunX,
+                stunY,
+                stunSize,
+                stunSize
+            );
+
+            batch.setColor(Color.WHITE);
+        }
+
 
         batch.setColor(Color.WHITE);
 
@@ -1244,6 +1287,9 @@ public class BattleRenderer {
         }
         if (airSlashTexture2 != null) {
             airSlashTexture2.dispose();
+        }
+        if (stunTexture != null) {
+            stunTexture.dispose();
         }
 
     }

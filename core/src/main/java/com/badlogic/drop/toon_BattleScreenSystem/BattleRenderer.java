@@ -109,9 +109,25 @@ public class BattleRenderer {
     public void setImmortalActive(boolean active) {
         this.immortalActive = active;
     }
+    private boolean stunActive = false;
+
+    public void setStunActive(boolean active) {
+        this.stunActive = active;
+    }
 
     private float airSlashTimer = 0f;
     private static final float AIR_SLASH_DURATION = 0.30f;
+
+    private float stunBuffTimer = 0f;
+    private static final float STUN_BUFF_DURATION = 0.3f;
+
+
+    private float immortalBuffTimer = 0f;
+    private static final float IMMORTAL_BUFF_DURATION = 0.3f;
+
+    private float doubleSlashBuffTimer = 0f;
+    private static final float DOUBLE_SLASH_BUFF_DURATION = 0.3f;
+
 
     public BattleRenderer() {
         dialogueFont.setColor(Color.BLACK);
@@ -217,7 +233,10 @@ public class BattleRenderer {
         if (buffSound != null) {
             buffSound.play(0.4f);
         }
+        stunBuffTimer = STUN_BUFF_DURATION;
+        buffAnimationTimer = STUN_BUFF_DURATION;
     }
+
 
     public void playSharpenAnimation() {
         buffAnimationTimer = BUFF_ANIMATION_DURATION;
@@ -252,6 +271,11 @@ public class BattleRenderer {
         healAnimationTime = 0f;
         playingHealAnimation = true;
     }
+
+    private float lifeStealBuffTimer = 0f;
+    private static final float LIFESTEAL_BUFF_DURATION = 0.3f;
+
+
     public int getAttachedNoteCount() {
         return attachedNoteCount;
     }
@@ -274,9 +298,41 @@ public class BattleRenderer {
     public void playAirSlashAnimation() {
         airSlashTimer = AIR_SLASH_DURATION;
 
+
+
         activeAirSlashTexture = Math.random() < 0.5
             ? airSlashTexture
             : airSlashTexture2;
+    }
+
+    public void playLifeStealBuffAnimation() {
+        lifeStealBuffTimer = LIFESTEAL_BUFF_DURATION;
+        buffAnimationTimer = BUFF_ANIMATION_DURATION;
+
+        if (buffSound != null) {
+            buffSound.play(0.4f);
+        }
+    }
+
+
+    public void playImmortalBuffAnimation() {
+        immortalBuffTimer = IMMORTAL_BUFF_DURATION;
+        buffAnimationTimer = BUFF_ANIMATION_DURATION;
+
+        if (buffSound != null) {
+            buffSound.play(0.4f);
+        }
+    }
+
+
+
+    public void playStunBuffAnimation() {
+        stunBuffTimer = STUN_BUFF_DURATION;
+        buffAnimationTimer = STUN_BUFF_DURATION;
+
+        if (buffSound != null) {
+            buffSound.play(0.4f);
+        }
     }
 
     // DoubleSlash: choose the exact slash image.
@@ -287,6 +343,14 @@ public class BattleRenderer {
             activeAirSlashTexture = airSlashTexture;
         } else {
             activeAirSlashTexture = airSlashTexture2;
+        }
+    }
+    public void playDoubleSlashBuffAnimation() {
+        doubleSlashBuffTimer = DOUBLE_SLASH_BUFF_DURATION;
+        buffAnimationTimer = BUFF_ANIMATION_DURATION;
+
+        if (buffSound != null) {
+            buffSound.play(0.4f);
         }
     }
 
@@ -517,6 +581,16 @@ public class BattleRenderer {
             buffAnimationTimer - delta
         );
 
+        lifeStealBuffTimer = Math.max(
+            0f,
+            lifeStealBuffTimer - delta
+        );
+        doubleSlashBuffTimer = Math.max(
+            0f,
+            doubleSlashBuffTimer - delta
+        );
+
+
         // Smoothly enlarge and shrink the sword
         float buffProgress = 0f;
 
@@ -526,6 +600,12 @@ public class BattleRenderer {
 
             buffProgress = (float) Math.sin(progress * Math.PI);
         }
+
+        immortalBuffTimer = Math.max(
+            0f,
+            immortalBuffTimer - delta
+        );
+
 
         float buffScale =
             1f + (BUFF_MAX_SCALE - 1f) * buffProgress;
@@ -630,15 +710,33 @@ public class BattleRenderer {
 
 
                 // ดาบปกติ พร้อมเอฟเฟกต์ Buff และ Immortal
+
                 if (redFlashTimer > 0f) {
-                    // Sharpen: สีแดงมีลำดับความสำคัญสูงสุด
+                    // Sharpen: สีแดง
                     batch.setColor(1f, 0f, 0f, 1f);
-                } else if (immortalActive) {
-                    // Immortal: สีฟ้าอ่อน
+
+                } else if (stunBuffTimer > 0f) {
+                    // Stun: สีเหลือง
+                    batch.setColor(1f, 0.9f, 0.1f, 1f);
+
+                } else if (immortalBuffTimer > 0f || immortalActive) {
+                    // Immortal: สีฟ้า
                     batch.setColor(0.2f, 0.65f, 1f, 1f);
+
+                } else if (lifeStealBuffTimer > 0f) {
+                    // LifeSteal: สีเขียว
+                    batch.setColor(0.2f, 1f, 0.2f, 1f);
+
+                } else if (doubleSlashBuffTimer > 0f) {
+                    // DoubleSlash: สีส้ม
+                    batch.setColor(1f, 0.5f, 0.1f, 1f);
+
                 } else {
                     batch.setColor(Color.WHITE);
                 }
+
+
+
 
                 batch.draw(
                     insecureSword,

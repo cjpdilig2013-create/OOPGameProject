@@ -797,9 +797,9 @@ public class BattleScreen extends ScreenAdapter {
             }
         }
 
-
         renderer.setLifeStealActive(lifeStealActive);
         renderer.setImmortalActive(immortalActive);
+        renderer.setStunActive(stunActive);
         renderer.drawStunEffect(stunEffectTimer);
 
         renderer.render(
@@ -840,6 +840,9 @@ public class BattleScreen extends ScreenAdapter {
                     noteJustSubmitted = true;
 
                     Gdx.input.setInputProcessor(null);
+
+                    playButtonSound(); // เสียงคลิกเมื่อกด Enter หลังพิมพ์ NOTE
+
                     useNoteWord(noteInput.toString());
 
                     return true;
@@ -1003,9 +1006,11 @@ public class BattleScreen extends ScreenAdapter {
         } else if ("DoubleSlash".equalsIgnoreCase(keyword)) {
             doubleSlashActive = true;
             battleMessage = "DoubleSlash activated! Slash Hit will strike twice!";
+            renderer.playDoubleSlashBuffAnimation();
         } else if ("LifeSteal".equalsIgnoreCase(keyword)) {
             lifeStealActive = true;
             battleMessage = "LifeSteal activated! Recover 25% of Slash damage!";
+            renderer.playLifeStealBuffAnimation();
     } else if ("Immortal".equalsIgnoreCase(keyword)) {
         immortalOriginalDefendReduction = player.getDefendReduction();
 
@@ -1013,12 +1018,14 @@ public class BattleScreen extends ScreenAdapter {
         immortalTurnsRemaining = 3;
         player.setPermanentDefendReduction(true);
         player.setDefendReduction(9999);
+            renderer.playImmortalBuffAnimation();
 
         battleMessage = "Immortal activated! 3 turns of invincibility!";
-    }else if ("Stun".equalsIgnoreCase(keyword)) {
+        } else if ("Stun".equalsIgnoreCase(keyword)) {
             stunActive = true;
-            battleMessage =
-                "Stun activated! 15% chance to stun the enemy on every attack!";
+            renderer.playStunBuffAnimation();
+            battleMessage = "Stun activated! 15% chance to stun the enemy on every attack!";
+            renderer.playStunBuffAnimation();
         }
 
 
@@ -1042,6 +1049,7 @@ public class BattleScreen extends ScreenAdapter {
 
 
     private boolean tryStunEnemy() {
+
         if (!stunActive || !enemy.isAlive() || enemyStunned) {
             return false;
         }

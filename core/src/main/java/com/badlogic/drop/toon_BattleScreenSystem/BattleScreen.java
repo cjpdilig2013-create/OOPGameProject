@@ -138,6 +138,9 @@ public class BattleScreen extends ScreenAdapter {
 
     private static final float STUN_EFFECT_DURATION = 1.5f;
 
+    private Texture heavyTungTexture;
+    private boolean heavyTungAttackPending = false;
+
 
     @Override
     public void show() {
@@ -163,6 +166,9 @@ public class BattleScreen extends ScreenAdapter {
         );
         // Create renderer + assets only once when this battle screen opens.
         renderer = new BattleRenderer();
+        heavyTungTexture = new Texture(
+            Gdx.files.internal("enemies/HeavyTung.png")
+        );
 
         assets = new EnemyAssets();
         assets.playMusic(round);
@@ -522,6 +528,17 @@ public class BattleScreen extends ScreenAdapter {
                 System.out.println("Enemy result: " + result);
                 boolean enemyIsCharging = result.contains("is charging up");
 
+                // HeavyTung: จำสถานะ Charge ของศัตรูตัวที่ 2
+                if (round == 2 && enemyIsCharging) {
+                    heavyTungAttackPending = true;
+                }
+
+                boolean useHeavyTungAttack =
+                    round == 2
+                        && !enemyIsCharging
+                        && !enemyWasStunned
+                        && heavyTungAttackPending;
+
                 if (!enemyWasStunned && !enemyIsCharging && wasImmortal) {
                     renderer.playBlockSound();
                 }
@@ -593,7 +610,14 @@ public class BattleScreen extends ScreenAdapter {
 
                 } else {
                     assets.playEnemyAttack(round);
-                    currentSprite = assets.getAttack(round);
+
+                    if (useHeavyTungAttack) {
+                        currentSprite = heavyTungTexture;
+                        heavyTungAttackPending = false;
+                    } else {
+                        currentSprite = assets.getAttack(round);
+                    }
+
                     animationTimer = 0.75f;
                     waitingForEnemyAnimation = true;
                 }
@@ -828,6 +852,7 @@ public class BattleScreen extends ScreenAdapter {
         renderer.setShowNoteInput(true);
         renderer.setNoteInputText("");
 
+
         Gdx.input.setInputProcessor(new com.badlogic.gdx.InputAdapter() {
             @Override
             public boolean keyTyped(char character) {
@@ -962,6 +987,10 @@ public class BattleScreen extends ScreenAdapter {
         if (stunSound != null) {
             stunSound.dispose();
             stunSound = null;
+        }
+        if (heavyTungTexture != null) {
+            heavyTungTexture.dispose();
+            heavyTungTexture = null;
         }
     }
 
@@ -1264,6 +1293,8 @@ public class BattleScreen extends ScreenAdapter {
         stunEffectTimer = 0f;
 
         renderer.drawStunEffect(0f);
+
+        heavyTungAttackPending = false;
 
         renderer.removeNoteFromSword();
         showShield = false;

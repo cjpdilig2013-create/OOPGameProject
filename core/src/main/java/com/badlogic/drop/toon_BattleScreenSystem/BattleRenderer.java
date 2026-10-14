@@ -76,6 +76,8 @@ public class BattleRenderer {
     private float healAnimationTime = 0f;
     private boolean playingHealAnimation = false;
 
+    private Texture heavyTungTexture;
+
     private Sound buffSound;
     private float enemyBuffScale = 1.0f;
     private float enemyRedFlashTimer = 0f;
@@ -475,13 +477,27 @@ public class BattleRenderer {
             batch.setColor(1f, 1f, 1f, enemyAlpha);
         }
 
+
+        float drawWidth = buffedEnemySize;
+        float drawHeight = buffedEnemySize;
+
+        if (currentSprite == heavyTungTexture) {
+            drawWidth *= 2f;
+            drawHeight *= 2f;
+        }
+
+        // ขยายจากจุดกึ่งกลางของศัตรู
+        float drawX = enemyX + (enemySize - drawWidth) / 2f;
+        float drawY = enemyY + (enemySize - drawHeight) / 2f;
+
         batch.draw(
             currentSprite,
-            buffedEnemyX,
-            buffedEnemyY,
-            buffedEnemySize,
-            buffedEnemySize
+            drawX,
+            drawY,
+            drawWidth,
+            drawHeight
         );
+
         // Draw the Stun effect above the enemy.
 
         // Draw the Stun effect above the enemy.
@@ -1388,6 +1404,9 @@ public class BattleRenderer {
         }
         if (stunTexture != null) {
             stunTexture.dispose();
+        }
+        if (heavyTungTexture != null) {
+            heavyTungTexture.dispose();
         }
 
     }

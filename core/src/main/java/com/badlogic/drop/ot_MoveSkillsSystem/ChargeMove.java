@@ -36,7 +36,7 @@ public class ChargeMove extends Move {
         normalDamage = user.getBuffedDamage(normalDamage);
 
         // Charged attack deals 10 times the calculated damage.
-        int damage = normalDamage * 10;
+        int damage = normalDamage * 3 ;
 
         target.takeDamage(damage);
 

@@ -41,6 +41,10 @@ public class BattleScreen extends ScreenAdapter {
     private float swordHideTimer = 0f;
     private static final float SWORD_HIDE_DURATION = 0.35f;
 
+    private boolean doubleSlashActive = false;
+    private boolean doubleSlashSecondHitPending = false;
+    private float doubleSlashTimer = 0f;
+
     private float enemyTurnTimer = 0f;
     private float enemyFadeTimer = 0f;
     private static final float ENEMY_FADE_DURATION = 0.35f;
@@ -539,6 +543,63 @@ public class BattleScreen extends ScreenAdapter {
                 airSlashTimer = 0f;
             }
         }
+            // Wait for the first slash effect to finish before the second hit.
+        if (doubleSlashSecondHitPending) {
+            doubleSlashTimer -= delta;
+
+            if (doubleSlashTimer <= 0f) {
+                doubleSlashSecondHitPending = false;
+                doubleSlashTimer = 0f;
+
+                // Do not hit an enemy that has already been defeated.
+                if (enemy.isAlive() && !battle.isBattleOver()) {
+                    String secondHitResult = battle.useMove(player, enemy, splashHit);
+
+                    // Show the second slash effect.
+                    airSlashActive = true;
+                    airSlashTimer = AIR_SLASH_DURATION;
+                    renderer.playAirSlashAnimation(2);
+
+                    // Play a slash sound.
+                    int soundIndex = random.nextInt(slashSounds.length);
+                    slashSounds[soundIndex].play();
+
+                    battleMessage = secondHitResult;
+
+                    if (!enemy.isAlive()) {
+                        // The second hit defeated the enemy.
+                        battle.getWinner();
+                        currentSprite = assets.getDead(round);
+                        enemyTurnTimer = 0f;
+                        waitingForEnemyAnimation = false;
+                        animationTimer = 0f;
+                        enemyDying = true;
+                        enemyDeathFadeTimer = ENEMY_DEATH_FADE_DURATION;
+                        assets.stopMusic();
+                        assets.playEnemyDefeated();
+
+                        if (round < 5) {
+                            waitingForNextRound = true;
+                            battleMessage = battleStatus(
+                                enemyDisplayName + " was defeated! Press SPACE for the next round."
+                            );
+                        } else {
+                            allRoundsWon = true;
+                            victoryPending = true;
+                            victoryTimer = 2f;
+                            battleMessage = "Professor Nek defeated!";
+                        }
+                    } else {
+                        // Allow the enemy to counterattack only after both hits.
+                        currentSprite = assets.getHurt(round);
+                        animationTimer = 0.4f;
+                        waitingForEnemyAnimation = true;
+                        enemyTurnTimer = 1.5f;
+                        enemyFadeTimer = ENEMY_FADE_DURATION;
+                    }
+                }
+            }
+        }
         if (!showPlayerSword) {
             swordHideTimer -= delta;
 
@@ -786,7 +847,18 @@ public class BattleScreen extends ScreenAdapter {
 
     private void useNoteWord(String text) {
         // Check whether the entered keyword is valid.
-        if (text == null || !"Sharpen".equalsIgnoreCase(text.trim())) {
+
+        if (text == null) {
+            battleMessage = "No such keyword! Choose a command.";
+            menuState = MenuState.MAIN_MENU;
+            selectedChoice = 0;
+            return;
+        }
+
+        String keyword = text.trim();
+
+        if (!"Sharpen".equalsIgnoreCase(keyword)
+            && !"DoubleSlash".equalsIgnoreCase(keyword)) {
             battleMessage = "No such keyword! Choose a command.";
             menuState = MenuState.MAIN_MENU;
             selectedChoice = 0;
@@ -795,17 +867,20 @@ public class BattleScreen extends ScreenAdapter {
 
         // Attach the NOTE only after the keyword is validated.
         if (!renderer.attachNoteToSword()) {
-            battleMessage = "No more NOTE available!";
+            battleMessage = "Cannot attach more notes!";
             menuState = MenuState.MAIN_MENU;
             selectedChoice = 0;
             return;
         }
 
-        // Activate the Fire effect and play the Sharpen animation.
-        player.activateFireBuff();
-        renderer.playSharpenAnimation();
-
-        battleMessage = "Sharpen power activated! 100% Damage Increase!";
+        if ("Sharpen".equalsIgnoreCase(keyword)) {
+            player.activateFireBuff();
+            renderer.playSharpenAnimation();
+            battleMessage = "Sharpen power activated! 100% Damage Increase!";
+        } else if ("DoubleSlash".equalsIgnoreCase(keyword)) {
+            doubleSlashActive = true;
+            battleMessage = "DoubleSlash activated! Slash Hit will strike twice!";
+        }
 
         // NOTE consumes the player's turn only when valid.
         if (enemy.isAlive() && !battle.isBattleOver()) {
@@ -824,43 +899,57 @@ public class BattleScreen extends ScreenAdapter {
         String result;
 
         switch (selectedMove) {
+
             case 1:
                 result = battle.playerTurn(splashHit);
 
+                // First slash uses airslash 01.
                 airSlashActive = true;
                 airSlashTimer = AIR_SLASH_DURATION;
+                renderer.playAirSlashAnimation(1);
 
                 int index = random.nextInt(slashSounds.length);
                 slashSounds[index].play();
 
                 showPlayerSword = false;
                 swordHideTimer = SWORD_HIDE_DURATION;
-
-
+                menuHideTimer = MENU_HIDE_DURATION;
 
                 if (enemy.isAlive()) {
                     currentSprite = assets.getHurt(round);
                     animationTimer = 0.4f;
                     waitingForEnemyAnimation = true;
-                    menuHideTimer = MENU_HIDE_DURATION;
-                    enemyTurnTimer = 1.5f;
                     enemyFadeTimer = ENEMY_FADE_DURATION;
-                }
-                else {
+
+                    if (doubleSlashActive) {
+                        // Delay the second hit. The enemy must wait.
+                        doubleSlashSecondHitPending = true;
+                        doubleSlashTimer = 0.35f;
+                        enemyTurnTimer = 0f;
+                    } else {
+                        // Normal Slash: the enemy counters as usual.
+                        doubleSlashSecondHitPending = false;
+                        doubleSlashTimer = 0f;
+                        enemyTurnTimer = 1.5f;
+                    }
+                } else {
+                    // The first hit defeated the enemy; do not perform a second hit.
+                    doubleSlashSecondHitPending = false;
+                    doubleSlashTimer = 0f;
+
                     currentSprite = assets.getDead(round);
                     assets.stopMusic();
                     assets.playEnemyDefeated();
                     animationTimer = 0f;
                     enemyTurnTimer = 0f;
+                    waitingForEnemyAnimation = false;
 
                     enemyDying = true;
                     enemyDeathFadeTimer = ENEMY_DEATH_FADE_DURATION;
-                    // Gain 1 NOTE when the enemy is defeated.
 
                     if (round < 5) {
                         waitingForNextRound = true;
-                        String nextName =
-                            EnemyFactory.getEnemyName(round + 1);
+                        String nextName = EnemyFactory.getEnemyName(round + 1);
 
                         battleMessage = battleStatus(
                             "YOU WIN! " + enemyDisplayName
@@ -875,10 +964,12 @@ public class BattleScreen extends ScreenAdapter {
                     }
                 }
 
-
                 if (enemy.isAlive()) {
-                    battleMessage =
-                        battleStatus("Insecure Sword used Slash Hit!");
+                    battleMessage = battleStatus(
+                        doubleSlashActive
+                            ? "Insecure Sword used DoubleSlash!"
+                            : "Insecure Sword used Slash Hit!"
+                    );
                 }
                 break;
 

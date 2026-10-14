@@ -28,6 +28,7 @@ public class BattleRenderer {
     private final BitmapFont dialogueFont = new BitmapFont();
     private DialogueBox dialogueBox;
     private final Texture airSlashTexture;
+    private Texture airSlashTexture2;
     private Texture playerHitTexture;
     private float swordFloatTimer = 0f;
     private Texture shieldTexture;
@@ -92,12 +93,18 @@ public class BattleRenderer {
     public void setNoteInputText(String text) {
         this.noteInputText = (text == null) ? "" : text;
     }
+    private Texture activeAirSlashTexture;
+    private float airSlashTimer = 0f;
+    private static final float AIR_SLASH_DURATION = 0.30f;
 
     public BattleRenderer() {
         dialogueFont.setColor(Color.BLACK);
 
         airSlashTexture = new Texture(
             Gdx.files.internal("effect/airslash 01.png")
+        );
+        airSlashTexture2 = new Texture(
+            Gdx.files.internal("effect/airslash 02.png")
         );
         shieldTexture = new Texture(
             Gdx.files.internal("effect/shield8bit.png")
@@ -245,6 +252,24 @@ public class BattleRenderer {
     public void setShowAttackMenu(boolean show) {
         this.showAttackMenu = show;
     }
+    public void playAirSlashAnimation() {
+        airSlashTimer = AIR_SLASH_DURATION;
+
+        activeAirSlashTexture = Math.random() < 0.5
+            ? airSlashTexture
+            : airSlashTexture2;
+    }
+
+    // DoubleSlash: choose the exact slash image.
+    public void playAirSlashAnimation(int slashNumber) {
+        airSlashTimer = AIR_SLASH_DURATION;
+
+        if (slashNumber == 1) {
+            activeAirSlashTexture = airSlashTexture;
+        } else {
+            activeAirSlashTexture = airSlashTexture2;
+        }
+    }
 
     // ONE rendering entry point shared by Garlic Man and Tung Tung Man.
     // The screen supplies current textures, HP, round number, and message.
@@ -378,23 +403,30 @@ public class BattleRenderer {
         batch.setColor(Color.WHITE);
 
         // Draw Air Slash over the enemy during the player's attack.
+
+        // Draw randomly selected Air Slash over the enemy.
         if (showAirSlash) {
+            Texture slashTexture = activeAirSlashTexture != null
+                ? activeAirSlashTexture
+                : airSlashTexture;
+
             float slashHeight = enemySize * 1.15f;
             float slashWidth = slashHeight
-                * airSlashTexture.getWidth()
-                / airSlashTexture.getHeight();
+                * slashTexture.getWidth()
+                / slashTexture.getHeight();
 
             float slashX = enemyX + (enemySize - slashWidth) / 2f;
             float slashY = enemyY + (enemySize - slashHeight) / 2f;
 
             batch.draw(
-                airSlashTexture,
+                slashTexture,
                 slashX,
                 slashY,
                 slashWidth,
                 slashHeight
             );
         }
+
 
         // PLAYER SPRITE: hide the player while Air Slash is active.
         float playerSize = screenHeight * 0.55f;
@@ -1181,6 +1213,9 @@ public class BattleRenderer {
             if (texture != null) {
                 texture.dispose();
             }
+        }
+        if (airSlashTexture2 != null) {
+            airSlashTexture2.dispose();
         }
 
     }

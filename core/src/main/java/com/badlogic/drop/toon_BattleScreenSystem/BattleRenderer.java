@@ -130,6 +130,13 @@ public class BattleRenderer {
     private float doubleSlashBuffTimer = 0f;
     private static final float DOUBLE_SLASH_BUFF_DURATION = 0.3f;
 
+    // Intimidate animation
+    private float intimidateTimer = 0f;
+    private static final float INTIMIDATE_DURATION = 0.35f;
+    private static final float INTIMIDATE_PURPLE_R = 0.65f;
+    private static final float INTIMIDATE_PURPLE_G = 0.30f;
+    private static final float INTIMIDATE_PURPLE_B = 0.90f;
+
 
     public BattleRenderer() {
         dialogueFont.setColor(Color.BLACK);
@@ -355,6 +362,9 @@ public class BattleRenderer {
             buffSound.play(0.4f);
         }
     }
+    public void playIntimidateAnimation() {
+        intimidateTimer = INTIMIDATE_DURATION;
+    }
 
     // ONE rendering entry point shared by Garlic Man and Tung Tung Man.
     // The screen supplies current textures, HP, round number, and message.
@@ -432,6 +442,7 @@ public class BattleRenderer {
         float hpBarY = enemyY + enemySize + 10f;
         swordFloatTimer += Gdx.graphics.getDeltaTime();
 
+
         float floatX = (float) Math.cos(swordFloatTimer * FLOAT_SPEED)
             * FLOAT_RADIUS;
 
@@ -442,41 +453,56 @@ public class BattleRenderer {
         //Draw background first
         batch.draw(background, bgX, bgY, bgWidth, bgHeight);
 
-        // ENEMY SPRITE: currentSprite changes between idle, attack, hurt and dead.
 
-        // ENEMY SPRITE: Buff makes the enemy grow and turn red.
+        // ENEMY SPRITE: Charge and Intimidate animations
         float enemyDelta = Gdx.graphics.getDeltaTime();
 
         enemyRedFlashTimer = Math.max(
-            0f,
-            enemyRedFlashTimer - enemyDelta
+            0f, enemyRedFlashTimer - enemyDelta
         );
 
-        // Smoothly enlarge and shrink the enemy
-        float enemyBuffScale = 1.0f;
+        intimidateTimer = Math.max(
+            0f, intimidateTimer - enemyDelta
+        );
+
+        // Charge: grow briefly and turn red
+        float enemyBuffScale = 1f;
 
         if (enemyRedFlashTimer > 0f) {
             float progress =
                 1f - enemyRedFlashTimer / ENEMY_BUFF_DURATION;
 
-            enemyBuffScale = 1.0f + 0.3f
+            enemyBuffScale = 1f + 0.3f
                 * (float) Math.sin(progress * Math.PI);
         }
 
-// Keep the enemy centered while its size changes
-        float buffedEnemySize = enemySize * enemyBuffScale;
-        float buffedEnemyX =
-            enemyX - (buffedEnemySize - enemySize) / 2f;
-        float buffedEnemyY =
-            enemyY - (buffedEnemySize - enemySize) / 2f;
+        // Intimidate: shrink briefly and turn purple
+        float intimidateScale = 1f;
 
-// Preserve transparency during enemy fade effects
-        if (enemyRedFlashTimer > 0f) {
-            batch.setColor(1f, 00f, 0f, enemyAlpha);
+        if (intimidateTimer > 0f) {
+            float progress =
+                1f - intimidateTimer / INTIMIDATE_DURATION;
+
+            intimidateScale = 1f - 0.15f
+                * (float) Math.sin(progress * Math.PI);
+        }
+
+        float finalEnemyScale = enemyBuffScale * intimidateScale;
+        float buffedEnemySize = enemySize * finalEnemyScale;
+
+        // Preserve enemy transparency and choose the animation color
+        if (intimidateTimer > 0f) {
+            batch.setColor(
+                INTIMIDATE_PURPLE_R,
+                INTIMIDATE_PURPLE_G,
+                INTIMIDATE_PURPLE_B,
+                enemyAlpha
+            );
+        } else if (enemyRedFlashTimer > 0f) {
+            batch.setColor(1f, 0f, 0f, enemyAlpha);
         } else {
             batch.setColor(1f, 1f, 1f, enemyAlpha);
         }
-
 
         float drawWidth = buffedEnemySize;
         float drawHeight = buffedEnemySize;
@@ -1112,7 +1138,7 @@ public class BattleRenderer {
                     "Slash",
                     "Shield",
                     "Cure",
-                    "Sharpen"
+                    "Intimidate"
                 };
                 break;
 

@@ -17,6 +17,7 @@ import com.badlogic.drop.ot_MoveSkillsSystem.SpecialSkillMove;
 import com.badlogic.drop.ot_MoveSkillsSystem.ChargeMove;
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.drop.ot_MoveSkillsSystem.IntimidateMove;
 
 // OOP Inheritance: BattleScreen extends ScreenAdapter.
 // This class controls the game's flow, not how each image is drawn.
@@ -69,6 +70,11 @@ public class BattleScreen extends ScreenAdapter {
 
     private float enemyBuffScale = 1.0f;
     private float enemyRedFlashTimer = 0f;
+
+    // Intimidate: reduce enemy Attack
+    private boolean intimidateActive = false;
+    private int enemyOriginalAttack = 0;
+    private int enemyReducedAttack = 0;
 
     // Player Sharpen animation
     private float playerBuffScale = 1.0f;
@@ -202,7 +208,7 @@ public class BattleScreen extends ScreenAdapter {
             Gdx.files.internal("effect/ButtonSoundEffect.mp3")
         );
 
-        specialSkillMove = new SpecialSkillMove();
+        specialSkillMove = new IntimidateMove();
         // Create the enemy's two moves
         enemyMoves = EnemyFactory.createEnemyMoves(round);
         enemyMove = enemyMoves[0];
@@ -1228,7 +1234,15 @@ public class BattleScreen extends ScreenAdapter {
 
             case 4:
                 result = battle.playerTurn(specialSkillMove);
-                renderer.playBuffAnimation();
+
+                if (specialSkillMove instanceof IntimidateMove
+                    && debuffSound != null) {
+                    debuffSound.play(0.5f);
+                }
+
+                if (specialSkillMove instanceof IntimidateMove) {
+                    renderer.playIntimidateAnimation();
+                }
 
                 battleMessage = battleStatus(result);
 

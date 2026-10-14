@@ -74,8 +74,6 @@ public class EnemyFactory {
                 return new Move[] {
                     new DamageMove("Garlic Punch", 10,
                         "Garlic Man uses Garlic Punch!"),
-                    new ChargeMove("Mega Garlic Smash", 15,
-                        "Garlic Man charges a powerful attack!")
                 };
 
             case 2:

@@ -193,6 +193,15 @@ public class BattleRenderer {
         }
     }
 
+    public void playSharpenAnimation() {
+        buffAnimationTimer = BUFF_ANIMATION_DURATION;
+        redFlashTimer = RED_FLASH_DURATION;
+
+        if (buffSound != null) {
+            buffSound.play(0.4f);
+        }
+    }
+
 
     public void playHealSound() {
         int index = random.nextInt(healSounds.length);
@@ -353,7 +362,7 @@ public class BattleRenderer {
 
 // Preserve transparency during enemy fade effects
         if (enemyRedFlashTimer > 0f) {
-            batch.setColor(1f, 0.1f, 1f, enemyAlpha);
+            batch.setColor(1f, 00f, 0f, enemyAlpha);
         } else {
             batch.setColor(1f, 1f, 1f, enemyAlpha);
         }

@@ -57,6 +57,12 @@ public class BattleScreen extends ScreenAdapter {
     private float enemyBuffScale = 1.0f;
     private float enemyRedFlashTimer = 0f;
 
+    // Player Sharpen animation
+    private float playerBuffScale = 1.0f;
+    private float playerRedFlashTimer = 0f;
+
+    private static final float PLAYER_BUFF_DURATION = 0.6f;
+
     // Reuse the existing battle system
     private PlayerCreature player;
     private Enemy enemy;
@@ -105,6 +111,7 @@ public class BattleScreen extends ScreenAdapter {
     private float menuHideTimer = 0f;
     private static final float MENU_HIDE_DURATION = 0.3f;
 
+    private Sound enemyChargeSound;
 
 
 
@@ -119,6 +126,9 @@ public class BattleScreen extends ScreenAdapter {
         };
         debuffSound = Gdx.audio.newSound(
             Gdx.files.internal("sounds/debuff01.mp3")
+        );
+        enemyChargeSound = Gdx.audio.newSound(
+            Gdx.files.internal("sounds/buff01.mp3")
         );
         // Create renderer + assets only once when this battle screen opens.
         renderer = new BattleRenderer();
@@ -161,12 +171,15 @@ public class BattleScreen extends ScreenAdapter {
         enemyMove = enemyMoves[0];
         battleMessage = "A wild Garlic Man appeared!";
 
+
+
     }
     private void playButtonSound() {
         if (buttonSound != null) {
             buttonSound.play(0.2f);
         }
     }
+
 
     private enum MenuState {
         MAIN_MENU,
@@ -446,9 +459,6 @@ public class BattleScreen extends ScreenAdapter {
                 System.out.println("Enemy result: " + result);
                 boolean enemyIsCharging = result.contains("is charging up");
 
-                if (enemyIsCharging) {
-                    renderer.playEnemyBuffAnimation();
-                }
                 // A charging turn does not consume the shield.
 
                 boolean playerWasDamaged =
@@ -478,8 +488,12 @@ public class BattleScreen extends ScreenAdapter {
                 battleMessage = result;
 
                 if (enemyIsCharging) {
-                    // Play debuff sound when the enemy starts charging.
-                    debuffSound.play(0.3f);
+                    // Play the red charge effect and its matching sound.
+                    renderer.playEnemyBuffAnimation();
+
+                    if (enemyChargeSound != null) {
+                        enemyChargeSound.play(0.5f);
+                    }
 
                     currentSprite = assets.getIdle(round);
                     animationTimer = 0f;
@@ -564,6 +578,15 @@ public class BattleScreen extends ScreenAdapter {
 
             if (playerHitFlashTimer < 0f) {
                 playerHitFlashTimer = 0f;
+            }
+        }
+        // Update Sharpen animation every frame.
+        if (playerRedFlashTimer > 0f) {
+            playerRedFlashTimer -= delta;
+
+            if (playerRedFlashTimer <= 0f) {
+                playerRedFlashTimer = 0f;
+                playerBuffScale = 1.0f;
             }
         }
         boolean playerHitFlash = playerHitFlashTimer > 0f;
@@ -753,13 +776,17 @@ public class BattleScreen extends ScreenAdapter {
         if (buttonSound != null) {
             buttonSound.dispose();
         }
+        if (enemyChargeSound != null) {
+            enemyChargeSound.dispose();
+            enemyChargeSound = null;
+        }
     }
 
 
 
     private void useNoteWord(String text) {
         // Check whether the entered keyword is valid.
-        if (text == null || !"Fire".equalsIgnoreCase(text.trim())) {
+        if (text == null || !"Sharpen".equalsIgnoreCase(text.trim())) {
             battleMessage = "No such keyword! Choose a command.";
             menuState = MenuState.MAIN_MENU;
             selectedChoice = 0;
@@ -774,9 +801,11 @@ public class BattleScreen extends ScreenAdapter {
             return;
         }
 
-        // Activate the Fire effect.
+        // Activate the Fire effect and play the Sharpen animation.
         player.activateFireBuff();
-        battleMessage = "The NOTE awakened! Fire power activated!";
+        renderer.playSharpenAnimation();
+
+        battleMessage = "Sharpen power activated! 100% Damage Increase!";
 
         // NOTE consumes the player's turn only when valid.
         if (enemy.isAlive() && !battle.isBattleOver()) {

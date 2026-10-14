@@ -45,6 +45,8 @@ public class BattleScreen extends ScreenAdapter {
     private boolean doubleSlashSecondHitPending = false;
     private float doubleSlashTimer = 0f;
 
+    private boolean lifeStealActive = false;
+
     private float enemyTurnTimer = 0f;
     private float enemyFadeTimer = 0f;
     private static final float ENEMY_FADE_DURATION = 0.35f;
@@ -559,6 +561,7 @@ public class BattleScreen extends ScreenAdapter {
                     airSlashActive = true;
                     airSlashTimer = AIR_SLASH_DURATION;
                     renderer.playAirSlashAnimation(2);
+                    applyLifeSteal();
 
                     // Play a slash sound.
                     int soundIndex = random.nextInt(slashSounds.length);
@@ -691,6 +694,7 @@ public class BattleScreen extends ScreenAdapter {
                 + noteInput;
         }
 
+        renderer.setLifeStealActive(lifeStealActive);
 
         renderer.render(
             assets,
@@ -857,8 +861,10 @@ public class BattleScreen extends ScreenAdapter {
 
         String keyword = text.trim();
 
+
         if (!"Sharpen".equalsIgnoreCase(keyword)
-            && !"DoubleSlash".equalsIgnoreCase(keyword)) {
+            && !"DoubleSlash".equalsIgnoreCase(keyword)
+            && !"LifeSteal".equalsIgnoreCase(keyword)) {
             battleMessage = "No such keyword! Choose a command.";
             menuState = MenuState.MAIN_MENU;
             selectedChoice = 0;
@@ -880,6 +886,9 @@ public class BattleScreen extends ScreenAdapter {
         } else if ("DoubleSlash".equalsIgnoreCase(keyword)) {
             doubleSlashActive = true;
             battleMessage = "DoubleSlash activated! Slash Hit will strike twice!";
+        } else if ("LifeSteal".equalsIgnoreCase(keyword)) {
+            lifeStealActive = true;
+            battleMessage = "LifeSteal activated! Recover 25% of Slash damage!";
         }
 
         // NOTE consumes the player's turn only when valid.
@@ -891,8 +900,21 @@ public class BattleScreen extends ScreenAdapter {
         }
     }
 
+    private void applyLifeSteal() {
+        if (!lifeStealActive) {
+            return;
+        }
 
+        int damage = ((DamageMove) splashHit).getLastDamage();
+        int healAmount = (int) (damage * 0.25);
 
+        if (healAmount > 0) {
+            int actualHeal = player.heal(healAmount);
+
+            battleMessage += "\nLifeSteal restored "
+                + actualHeal + " HP!";
+        }
+    }
 
 
     private void executeSelectedMove() {
@@ -971,6 +993,7 @@ public class BattleScreen extends ScreenAdapter {
                             : "Insecure Sword used Slash Hit!"
                     );
                 }
+                applyLifeSteal();
                 break;
 
             case 2:

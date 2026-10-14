@@ -7,6 +7,7 @@ import com.badlogic.drop.beach_CreatureStatsSystem.PlayerCreature;
 public class DamageMove extends Move {
 
     private String lastResult;
+    private int lastDamage;
 
     public DamageMove(String name, int power, String description) {
         super(name, power, description);
@@ -37,15 +38,19 @@ public class DamageMove extends Move {
             damage *= 2;
         }
 
-        target.takeDamage(damage);
-
+        int actualDamage = target.takeDamage(damage);
+        lastDamage = actualDamage;
 
         lastResult = user.getName() + " used " + getName()
             + "!"
-            + "\nDamage: " + damage
+            + "\nDamage: " + actualDamage
             + "\n" + target.getName() + " HP: "
             + target.getCurrentHp() + "/" + target.getMaxHp();
 
         return lastResult;
+    }
+
+    public int getLastDamage() {
+        return lastDamage;
     }
 }

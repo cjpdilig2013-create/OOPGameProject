@@ -90,10 +90,16 @@ public class BattleRenderer {
         this.showNoteInput = show;
     }
 
+    private Texture activeAirSlashTexture;
+    private boolean lifeStealActive = false;
+
     public void setNoteInputText(String text) {
         this.noteInputText = (text == null) ? "" : text;
     }
-    private Texture activeAirSlashTexture;
+    public void setLifeStealActive(boolean active) {
+        this.lifeStealActive = active;
+    }
+
     private float airSlashTimer = 0f;
     private static final float AIR_SLASH_DURATION = 0.30f;
 
@@ -404,7 +410,8 @@ public class BattleRenderer {
 
         // Draw Air Slash over the enemy during the player's attack.
 
-        // Draw randomly selected Air Slash over the enemy.
+
+        // Draw Air Slash over the enemy during the player's attack.
         if (showAirSlash) {
             Texture slashTexture = activeAirSlashTexture != null
                 ? activeAirSlashTexture
@@ -418,6 +425,14 @@ public class BattleRenderer {
             float slashX = enemyX + (enemySize - slashWidth) / 2f;
             float slashY = enemyY + (enemySize - slashHeight) / 2f;
 
+            // Save the original batch color.
+            Color previousColor = batch.getColor().cpy();
+
+            // LifeSteal makes Air Slash red.
+            if (lifeStealActive) {
+                batch.setColor(1f, 0.25f, 0.25f, previousColor.a);
+            }
+
             batch.draw(
                 slashTexture,
                 slashX,
@@ -425,7 +440,11 @@ public class BattleRenderer {
                 slashWidth,
                 slashHeight
             );
+
+            // Restore the original color for other sprites.
+            batch.setColor(previousColor);
         }
+
 
 
         // PLAYER SPRITE: hide the player while Air Slash is active.

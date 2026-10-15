@@ -1420,7 +1420,7 @@ public class BattleScreen extends ScreenAdapter {
                     enemyDying = true;
                     enemyDeathFadeTimer = ENEMY_DEATH_FADE_DURATION;
 
-                    if (round < 5) {
+                    if (round < EnemyFactory.getRoundCount()) {
                         waitingForNextRound = true;
                         String nextName = EnemyFactory.getEnemyName(round + 1);
 

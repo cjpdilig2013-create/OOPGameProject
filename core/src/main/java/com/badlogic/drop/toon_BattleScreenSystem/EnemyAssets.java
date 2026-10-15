@@ -5,170 +5,112 @@ import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.Texture;
 
+import java.util.ArrayList;
+import java.util.List;
+
 
 //This is the Enemy Assets Tab: This is where we store all the backgrounds, sound effects (enemy and creature), and more below
+//To add a new enemy, add ONE new line to the list in the constructor (round = place in the list)
 public class EnemyAssets {
-    private final Texture garlicBackground, tungBackground, calcBackground, bookBackground, nekBackground;
+    private final List<EnemyAssetSet> enemies = new ArrayList<EnemyAssetSet>();
     private final Texture insecureSword;
-    private final Texture[] garlicSprites, tungSprites, calcSprites, bookSprites, nekSprites;
+    private final Sound enemyDefeatedSound;
+    private Music battleMusic;
+
+    //Special sprites that an enemy only shows while using one of its special moves
     private final Texture mathmindSprite;
     private final Texture mindBookSprite;
     private final Texture heavyNekSprite;
     private final Texture mindNekSprite;
 
-    private final Music garlicMusic, tungMusic, calcMusic, bookMusic, nekMusic;
-    private final Sound garlicAttackSound, tungAttackSound, calcAttackSound,
-        bookAttackSound, nekAttackSound, enemyDefeatedSound;
-    private Music battleMusic;
-
-
     public EnemyAssets() {
-        //Backgrounds for the enemies. (Can see it battle)
-        garlicBackground = new Texture("backgrounds/garlic-background.png");
-        tungBackground = new Texture("backgrounds/tung-background.png");
-        calcBackground = new Texture("backgrounds/calc-background.png");
-        bookBackground = new Texture("backgrounds/book-background.png");
-        nekBackground = new Texture("backgrounds/nek-background.png");
+        //One entry per enemy. Order = round number.
+        //Sprites for the Enemies (4 states: Idle, Attack, Hurt, Dead)
+        //Background music for the enemies (All the same until the final battle)
+        //The last number is the enemy size as a fraction of the window height
+        enemies.add(new EnemyAssetSet("backgrounds/garlic-background.png",
+            poses("enemies/garlic_idle.png", "enemies/garlic_attack.png",
+                "enemies/garlic_hurt.png", "enemies/garlic_dead.png"),
+            "music/EnemyApproaching-TobyFox.mp3", "sounds/garlic-attack.mp3", 0.35f));
+
+        enemies.add(new EnemyAssetSet("backgrounds/tung-background.png",
+            poses("enemies/tung_tung-idle.png", "enemies/tung_tung-attack.png",
+                "enemies/tung_tung-hurt.png", "enemies/tung_tung-dead.png"),
+            "music/EnemyApproaching-TobyFox.mp3", "sounds/tung-attack.mp3", 0.43f));
+
+        enemies.add(new EnemyAssetSet("backgrounds/calc-background.png",
+            poses("enemies/calc-idle.png", "enemies/calc-attack.png",
+                "enemies/calc-hurt.png", "enemies/calc-dead.png"),
+            "music/EnemyApproaching-TobyFox.mp3", "sounds/calc-attack.mp3", 0.40f));
+
+        enemies.add(new EnemyAssetSet("backgrounds/book-background.png",
+            poses("enemies/book-idle.png", "enemies/book-attack.png",
+                "enemies/book-hurt.png", "enemies/book-dead.png"),
+            "music/EnemyApproaching-TobyFox.mp3", "sounds/book-attack.mp3", 0.42f));
+
+        enemies.add(new EnemyAssetSet("backgrounds/nek-background.png",
+            poses("enemies/nek-idle.png", "enemies/nek-attack.png",
+                "enemies/nek-hurt.png", "enemies/nek-dead.png"),
+            "music/nek-battlemusic.mp3", "sounds/nek-attack.mp3", 0.46f));
 
         insecureSword = new Texture("creatures/swordstand.png");
+        insecureSword.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest);
 
-
-        //Sprites for the Enemies (4 states: Idle, Attack, Hurt, Dead)
-        garlicSprites = new Texture[] {
-            new Texture("enemies/garlic_idle.png"),
-            new Texture("enemies/garlic_attack.png"),
-            new Texture("enemies/garlic_hurt.png"),
-            new Texture("enemies/garlic_dead.png")
-        };
-        tungSprites = new Texture[] {
-            new Texture("enemies/tung_tung-idle.png"),
-            new Texture("enemies/tung_tung-attack.png"),
-            new Texture("enemies/tung_tung-hurt.png"),
-            new Texture("enemies/tung_tung-dead.png")
-        };
-
-        calcSprites = new Texture[] {
-            new Texture("enemies/calc-idle.png"),
-            new Texture("enemies/calc-attack.png"),
-            new Texture("enemies/calc-hurt.png"),
-            new Texture("enemies/calc-dead.png")
-        };
-
-        mathmindSprite = new Texture("enemies/Mathmind.png");
-        setNearest(mathmindSprite);
+        mathmindSprite = loadSprite("enemies/Mathmind.png");
         // Special sprite used only when Angry Book activates its special move.
-        mindBookSprite = new Texture("enemies/MindBook.png");
-        setNearest(mindBookSprite);
+        mindBookSprite = loadSprite("enemies/MindBook.png");
         // Special sprite used when Nek activates Charge.
-        heavyNekSprite = new Texture("enemies/HeavyNek.png");
-        setNearest(heavyNekSprite);
-
+        heavyNekSprite = loadSprite("enemies/HeavyNek.png");
         // Special sprite used when Nek activates Math.
-        mindNekSprite = new Texture("enemies/MindNek.png");
-        setNearest(mindNekSprite);
+        mindNekSprite = loadSprite("enemies/MindNek.png");
 
-
-
-        bookSprites = new Texture[] {
-            new Texture("enemies/book-idle.png"),
-            new Texture("enemies/book-attack.png"),
-            new Texture("enemies/book-hurt.png"),
-            new Texture("enemies/book-dead.png")
-        };
-
-        nekSprites = new Texture[] {
-            new Texture("enemies/nek-idle.png"),
-            new Texture("enemies/nek-attack.png"),
-            new Texture("enemies/nek-hurt.png"),
-            new Texture("enemies/nek-dead.png")
-        };
-
-        //Nearest increases the scale for the enemies so that the states aren't blurred
-        for (Texture t : garlicSprites) setNearest(t);
-        for (Texture t : tungSprites) setNearest(t);
-        for (Texture t : calcSprites) setNearest(t);
-        for (Texture t : bookSprites) setNearest(t);
-        for (Texture t : nekSprites) setNearest(t);
-        setNearest(insecureSword);
-
-
-        //Background music for the enemies (All the same until the final battle)
-        garlicMusic = Gdx.audio.newMusic(Gdx.files.internal("music/EnemyApproaching-TobyFox.mp3"));
-        tungMusic = Gdx.audio.newMusic(Gdx.files.internal("music/EnemyApproaching-TobyFox.mp3"));
-        calcMusic = Gdx.audio.newMusic(Gdx.files.internal("music/EnemyApproaching-TobyFox.mp3"));
-        bookMusic = Gdx.audio.newMusic(Gdx.files.internal("music/EnemyApproaching-TobyFox.mp3"));
-        nekMusic = Gdx.audio.newMusic(Gdx.files.internal("music/nek-battlemusic.mp3"));
-        Music[] tracks = {garlicMusic, tungMusic, calcMusic, bookMusic, nekMusic};
-        for (Music track : tracks) {
-            track.setLooping(true);
-            track.setVolume(0.35f);
-        }
-
-        //Sound effect for when the creature attacks and when they are defeated
-        garlicAttackSound = Gdx.audio.newSound(Gdx.files.internal("sounds/garlic-attack.mp3"));
-        tungAttackSound = Gdx.audio.newSound(Gdx.files.internal("sounds/tung-attack.mp3"));
-        calcAttackSound = Gdx.audio.newSound(Gdx.files.internal("sounds/calc-attack.mp3"));
-        bookAttackSound = Gdx.audio.newSound(Gdx.files.internal("sounds/book-attack.mp3"));
-        nekAttackSound = Gdx.audio.newSound(Gdx.files.internal("sounds/nek-attack.mp3"));
+        //Sound effect for when the enemy is defeated
         enemyDefeatedSound = Gdx.audio.newSound(Gdx.files.internal("sounds/enemydefeated-1.mp3"));
     }
-    public Texture getMathmind() {
-        return mathmindSprite;
-    }
-    public Texture getMindBook() {
-        return mindBookSprite;
-    }
-    public Texture getHeavyNek() {
-        return heavyNekSprite;
-    }
-    public Texture getMindNek() {
-        return mindNekSprite;
+
+    private String[] poses(String idle, String attack, String hurt, String dead) {
+        return new String[] {idle, attack, hurt, dead};
     }
 
-
-    private void setNearest(Texture texture) {
+    private Texture loadSprite(String path) {
+        Texture texture = new Texture(path);
         texture.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest);
+        return texture;
+    }
+
+    //Finds the assets for a round (round 1 = first enemy in the list)
+    private EnemyAssetSet getSet(int round) {
+        if (round < 1 || round > enemies.size()) {
+            throw new IllegalArgumentException("Unknown round: " + round);
+        }
+        return enemies.get(round - 1);
     }
 
     //Actually calling the background and implementing it using get
     public Texture getBackground(int round) {
-        if (round == 1) return garlicBackground;
-        if (round == 2) return tungBackground;
-        if (round == 3) return calcBackground;
-        if (round == 4) return bookBackground;
-        if (round == 5) return nekBackground;
-        throw new IllegalArgumentException("Unknown round: " + round);
+        return getSet(round).getBackground();
     }
 
     public Texture getSword() { return insecureSword; }
-    public Texture getIdle(int round) { return sprite(round, 0); }
-    public Texture getAttack(int round) { return sprite(round, 1); }
-    public Texture getHurt(int round) { return sprite(round, 2); }
-    public Texture getDead(int round) { return sprite(round, 3); }
+    public Texture getIdle(int round) { return getSet(round).getSprite(0); }
+    public Texture getAttack(int round) { return getSet(round).getSprite(1); }
+    public Texture getHurt(int round) { return getSet(round).getSprite(2); }
+    public Texture getDead(int round) { return getSet(round).getSprite(3); }
 
-    // SPRITE GETTER: return the correct enemy pose without reloading textures.
-    private Texture sprite(int round, int pose) {
-        switch (round) {
-            case 1: return garlicSprites[pose];
-            case 2: return tungSprites[pose];
-            case 3: return calcSprites[pose];
-            case 4: return bookSprites[pose];
-            case 5: return nekSprites[pose];
-            default: throw new IllegalArgumentException("Unknown round: " + round);
-        }
+    public Texture getMathmind() { return mathmindSprite; }
+    public Texture getMindBook() { return mindBookSprite; }
+    public Texture getHeavyNek() { return heavyNekSprite; }
+    public Texture getMindNek() { return mindNekSprite; }
+
+    //Enemy size as a fraction of the window height (used by the BattleRenderer)
+    public float getEnemyScale(int round) {
+        return getSet(round).getScale();
     }
 
     //MUSIC SWITCHING: stop the last round's music before starting the next.
     public void playMusic(int round) {
         stopMusic();
-        switch (round) {
-            case 1: battleMusic = garlicMusic; break;
-            case 2: battleMusic = tungMusic; break;
-            case 3: battleMusic = calcMusic; break;
-            case 4: battleMusic = bookMusic; break;
-            case 5: battleMusic = nekMusic; break;
-            default: throw new IllegalArgumentException("Unknown round: " + round);
-        }
+        battleMusic = getSet(round).getMusic();
         battleMusic.play();
     }
 
@@ -178,14 +120,7 @@ public class EnemyAssets {
 
     //Play the signature attack sound for the active opponent.
     public void playEnemyAttack(int round) {
-        switch (round) {
-            case 1: garlicAttackSound.play(0.7f); break;
-            case 2: tungAttackSound.play(0.7f); break;
-            case 3: calcAttackSound.play(0.7f); break;
-            case 4: bookAttackSound.play(0.7f); break;
-            case 5: nekAttackSound.play(0.7f); break;
-            default: throw new IllegalArgumentException("Unknown round: " + round);
-        }
+        getSet(round).playAttackSound();
     }
 
     public void playEnemyDefeated() {
@@ -195,28 +130,9 @@ public class EnemyAssets {
     //RESOURCE CLEANUP: dispose only what this class created.
     public void dispose() {
         stopMusic();
-        garlicBackground.dispose();
-        tungBackground.dispose();
-        calcBackground.dispose();
-        bookBackground.dispose();
-        nekBackground.dispose();
+        for (EnemyAssetSet set : enemies) set.dispose();
         insecureSword.dispose();
-        for (Texture t : garlicSprites) t.dispose();
-        for (Texture t : tungSprites) t.dispose();
-        for (Texture t : calcSprites) t.dispose();
-        for (Texture t : bookSprites) t.dispose();
-        for (Texture t : nekSprites) t.dispose();
-        garlicAttackSound.dispose();
-        tungAttackSound.dispose();
-        calcAttackSound.dispose();
-        bookAttackSound.dispose();
-        nekAttackSound.dispose();
         enemyDefeatedSound.dispose();
-        garlicMusic.dispose();
-        tungMusic.dispose();
-        calcMusic.dispose();
-        bookMusic.dispose();
-        nekMusic.dispose();
         mathmindSprite.dispose();
         mindBookSprite.dispose();
         heavyNekSprite.dispose();

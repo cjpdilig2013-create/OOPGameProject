@@ -13,26 +13,26 @@ public class EnemyFactory {
 
     //Round 1 = first enemy, round 2 = second enemy, and so on
     private static final List<EnemyInfo> ENEMIES = Arrays.asList(
-        new EnemyInfo("Garlic Man", 60, 12, 8, 10, new MoveInfo[] {
+        new EnemyInfo("Garlic Man", 60, 12, 5, 10, new MoveInfo[] {
             new DamageMoveInfo("Garlic Punch", 10, "Garlic Man uses Garlic Punch!")
         }),
 
-        new EnemyInfo("Tung Tung Man", 100, 18, 10, 10, new MoveInfo[] {
+        new EnemyInfo("Tung Tung Man", 100, 18, 6, 10, new MoveInfo[] {
             new DamageMoveInfo("Tung Tung Bong", 15, "Tung Tung Man uses Tung Tung Bong!"),
             new ChargeMoveInfo("Mega Tung Tung Bong", 20, "Tung Tung Man charges a powerful attack!")
         }),
 
-        new EnemyInfo("Calculator", 150, 25, 14, 10, new MoveInfo[] {
+        new EnemyInfo("Calculator", 120, 20, 10, 10, new MoveInfo[] {
             new DamageMoveInfo("Calculate", 18, "Calculator uses Calculate!"),
             new MathMoveInfo()
         }),
 
-        new EnemyInfo("Angry Book", 180, 30, 18, 10, new MoveInfo[] {
+        new EnemyInfo("Angry Book", 150, 22, 12, 10, new MoveInfo[] {
             new DamageMoveInfo("Paper Cut", 21, "Angry Book uses Paper Cut!"),
             new MindLockMoveInfo("Mind Lock", 0, "Angry Book uses Mind Lock!")
         }),
 
-        new EnemyInfo("Professor Boss", 200, 25, 20, 10, new MoveInfo[] {
+        new EnemyInfo("Professor Boss", 200, 25, 15, 10, new MoveInfo[] {
             new DamageMoveInfo("Final Exam", 25, "Professor Boss uses Final Exam!"),
             new ChargeMoveInfo("Ultimate Final Exam", 30, "Professor Boss charges the final exam attack!"),
             new MathMoveInfo(),

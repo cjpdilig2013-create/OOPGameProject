@@ -11,12 +11,12 @@ public class DefendMove extends Move {
 
     @Override
     public String use(Creature user, Creature target) {
-        user.setDefendReduction(getPower());
+        user.setDefendReduction(50);
 
         return user.getName() + " used " + getName()
             + "!"
             + "\nShield activated!"
-            + "\nDamage reduction: " + getPower()
+            + "\nDamage reduction: 50%"
             + "\nShield remains until hit.";
     }
 }

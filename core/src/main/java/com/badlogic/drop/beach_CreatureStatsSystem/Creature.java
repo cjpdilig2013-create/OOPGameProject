@@ -12,6 +12,7 @@ public class Creature {
 
     // Set by DefendMove: reduces the next incoming hit, then resets.
     private int defendReduction = 0;
+    private boolean permanentDefendReduction = false;
 
     public Creature(String name, int level, int maxHp, int attack, int defense, int speed) {
         this.name = name;
@@ -31,24 +32,42 @@ public class Creature {
      * @return the damage actually dealt
      */
 
+
+    /**
+     * Subtracts HP (never below 0).
+     * A pending defend reduction is applied to the incoming hit
+     * and lasts for one hit unless the reduction is permanent.
+     *
+     * @return the damage actually dealt
+     */
     public int takeDamage(int amount) {
         if (amount <= 0) {
             return 0;
         }
 
         int before = stats.getHp();
+        int finalDamage;
 
-        // Apply shield reduction to this incoming hit.
-        int finalDamage = Math.max(0, amount - defendReduction);
+        if (permanentDefendReduction) {
+            // Immortal: block all incoming damage.
+            finalDamage = 0;
+        } else if (defendReduction > 0) {
+            // Defend: reduce incoming damage by a percentage.
+            finalDamage = (int) Math.ceil(
+                amount * (1.0 - defendReduction / 100.0)
+            );
 
-        // A successful hit consumes the shield,
-        // even if the shield blocks all damage.
-        clearDefendReduction();
+            // Consume Defend after one hit.
+            clearDefendReduction();
+        } else {
+            finalDamage = amount;
+        }
 
         stats.setHp(Math.max(0, before - finalDamage));
 
         return before - stats.getHp();
     }
+
 
 
     /**
@@ -93,6 +112,9 @@ public class Creature {
     public void setDefendReduction(int amount) { defendReduction = Math.max(0, amount); }
     public int getDefendReduction() { return defendReduction; }
     public void clearDefendReduction() { defendReduction = 0; }
+    public void setPermanentDefendReduction(boolean permanent) {
+        permanentDefendReduction = permanent;
+    }
 
     protected void setLevel(int level) { this.level = Math.max(1, level); }
 

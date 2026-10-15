@@ -14,6 +14,7 @@ import java.util.Random;
 import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 
+
 // Sword idle animation
 
 
@@ -28,10 +29,13 @@ public class BattleRenderer {
     private final BitmapFont dialogueFont = new BitmapFont();
     private DialogueBox dialogueBox;
     private final Texture airSlashTexture;
+    private Texture airSlashTexture2;
     private Texture playerHitTexture;
     private float swordFloatTimer = 0f;
     private Texture shieldTexture;
     private com.badlogic.gdx.audio.Sound shieldSound;
+
+    private Texture stunTexture;
 
     private static final float FLOAT_RADIUS = 12f;
     private static final float FLOAT_SPEED = 2f;
@@ -73,6 +77,8 @@ public class BattleRenderer {
     private float healAnimationTime = 0f;
     private boolean playingHealAnimation = false;
 
+    private Texture heavyTungTexture;
+
     private Sound buffSound;
     private float enemyBuffScale = 1.0f;
     private float enemyRedFlashTimer = 0f;
@@ -84,14 +90,70 @@ public class BattleRenderer {
 
     private boolean showNoteInput = false;
     private String noteInputText = "";
+    private float stunEffectTimer = 0f;
+
+    // Calculator Math animation
+    private String mathAnimationState = "NONE";
+    private float mathAnimationTimer = 0f;
+
+    public void setMathAnimation(String state, float timer) {
+        mathAnimationState = state;
+        mathAnimationTimer = timer;
+    }
+
 
     public void setShowNoteInput(boolean show) {
         this.showNoteInput = show;
     }
 
+    private Texture activeAirSlashTexture;
+    private boolean lifeStealActive = false;
+
+
     public void setNoteInputText(String text) {
         this.noteInputText = (text == null) ? "" : text;
     }
+    public void setLifeStealActive(boolean active) {
+        this.lifeStealActive = active;
+    }
+    public void drawStunEffect(float timer) {
+        stunEffectTimer = timer;
+    }
+    private boolean immortalActive = false;
+    public void setImmortalActive(boolean active) {
+        this.immortalActive = active;
+    }
+    private boolean stunActive = false;
+
+    public void setStunActive(boolean active) {
+        this.stunActive = active;
+    }
+
+    private float airSlashTimer = 0f;
+    private static final float AIR_SLASH_DURATION = 0.30f;
+
+    private float stunBuffTimer = 0f;
+    private static final float STUN_BUFF_DURATION = 0.3f;
+
+
+    private float immortalBuffTimer = 0f;
+    private static final float IMMORTAL_BUFF_DURATION = 0.3f;
+
+    private float doubleSlashBuffTimer = 0f;
+    private static final float DOUBLE_SLASH_BUFF_DURATION = 0.3f;
+
+    private Texture xEffectTexture;
+
+    // Intimidate animation
+    private float intimidateTimer = 0f;
+    // Mind Lock debuff animation
+    private float mindLockDebuffTimer = 0f;
+    private static final float MIND_LOCK_DEBUFF_DURATION = 0.5f;
+    private static final float INTIMIDATE_DURATION = 0.35f;
+    private static final float INTIMIDATE_PURPLE_R = 0.65f;
+    private static final float INTIMIDATE_PURPLE_G = 0.30f;
+    private static final float INTIMIDATE_PURPLE_B = 0.90f;
+
 
     public BattleRenderer() {
         dialogueFont.setColor(Color.BLACK);
@@ -99,8 +161,14 @@ public class BattleRenderer {
         airSlashTexture = new Texture(
             Gdx.files.internal("effect/airslash 01.png")
         );
+        airSlashTexture2 = new Texture(
+            Gdx.files.internal("effect/airslash 02.png")
+        );
         shieldTexture = new Texture(
             Gdx.files.internal("effect/shield8bit.png")
+        );
+        stunTexture = new Texture(
+            Gdx.files.internal("effect/Stun.png")
         );
         shieldSound = Gdx.audio.newSound(
             Gdx.files.internal("sounds/block02.mp3")
@@ -135,6 +203,9 @@ public class BattleRenderer {
         );
         playerHitTexture = new Texture(
             Gdx.files.internal("creatures/swordgethit.png")
+        );
+        xEffectTexture = new Texture(
+            Gdx.files.internal("effect/Xeffect.png")
         );
 
         for (int i = 0; i < noteTextures.length; i++) {
@@ -191,6 +262,17 @@ public class BattleRenderer {
         if (buffSound != null) {
             buffSound.play(0.4f);
         }
+        buffAnimationTimer = BUFF_ANIMATION_DURATION;
+    }
+
+
+    public void playSharpenAnimation() {
+        buffAnimationTimer = BUFF_ANIMATION_DURATION;
+        redFlashTimer = RED_FLASH_DURATION;
+
+        if (buffSound != null) {
+            buffSound.play(0.4f);
+        }
     }
 
 
@@ -217,6 +299,11 @@ public class BattleRenderer {
         healAnimationTime = 0f;
         playingHealAnimation = true;
     }
+
+    private float lifeStealBuffTimer = 0f;
+    private static final float LIFESTEAL_BUFF_DURATION = 0.3f;
+
+
     public int getAttachedNoteCount() {
         return attachedNoteCount;
     }
@@ -232,9 +319,78 @@ public class BattleRenderer {
     public void setSelectedChoice(int selectedChoice) {
         this.selectedChoice = selectedChoice;
     }
+    private boolean noteLocked = false;
+
+    public void setNoteLocked(boolean locked) {
+        this.noteLocked = locked;
+    }
 
     public void setShowAttackMenu(boolean show) {
         this.showAttackMenu = show;
+    }
+    public void playAirSlashAnimation() {
+        airSlashTimer = AIR_SLASH_DURATION;
+
+
+
+        activeAirSlashTexture = Math.random() < 0.5
+            ? airSlashTexture
+            : airSlashTexture2;
+    }
+
+    public void playLifeStealBuffAnimation() {
+        lifeStealBuffTimer = LIFESTEAL_BUFF_DURATION;
+        buffAnimationTimer = BUFF_ANIMATION_DURATION;
+
+        if (buffSound != null) {
+            buffSound.play(0.4f);
+        }
+    }
+
+
+    public void playImmortalBuffAnimation() {
+        immortalBuffTimer = IMMORTAL_BUFF_DURATION;
+        buffAnimationTimer = BUFF_ANIMATION_DURATION;
+
+        if (buffSound != null) {
+            buffSound.play(0.4f);
+        }
+    }
+
+
+
+    public void playStunBuffAnimation() {
+        stunBuffTimer = STUN_BUFF_DURATION;
+        buffAnimationTimer = BUFF_ANIMATION_DURATION;
+
+        if (buffSound != null) {
+            buffSound.play(0.4f);
+        }
+    }
+
+    // DoubleSlash: choose the exact slash image.
+    public void playAirSlashAnimation(int slashNumber) {
+        airSlashTimer = AIR_SLASH_DURATION;
+
+        if (slashNumber == 1) {
+            activeAirSlashTexture = airSlashTexture;
+        } else {
+            activeAirSlashTexture = airSlashTexture2;
+        }
+    }
+    public void playDoubleSlashBuffAnimation() {
+        doubleSlashBuffTimer = DOUBLE_SLASH_BUFF_DURATION;
+        buffAnimationTimer = BUFF_ANIMATION_DURATION;
+
+        if (buffSound != null) {
+            buffSound.play(0.4f);
+        }
+    }
+    public void playIntimidateAnimation() {
+        intimidateTimer = INTIMIDATE_DURATION;
+    }
+    public void playMindLockDebuffAnimation() {
+        mindLockDebuffTimer = MIND_LOCK_DEBUFF_DURATION;
     }
 
     // ONE rendering entry point shared by Garlic Man and Tung Tung Man.
@@ -293,6 +449,7 @@ public class BattleRenderer {
         float hpBarY = enemyY + enemySize + 10f;
         swordFloatTimer += Gdx.graphics.getDeltaTime();
 
+
         float floatX = (float) Math.cos(swordFloatTimer * FLOAT_SPEED)
             * FLOAT_RADIUS;
 
@@ -303,69 +460,187 @@ public class BattleRenderer {
         //Draw background first
         batch.draw(background, bgX, bgY, bgWidth, bgHeight);
 
-        // ENEMY SPRITE: currentSprite changes between idle, attack, hurt and dead.
 
-        // ENEMY SPRITE: Buff makes the enemy grow and turn red.
+        // ENEMY SPRITE: Charge and Intimidate animations
         float enemyDelta = Gdx.graphics.getDeltaTime();
 
         enemyRedFlashTimer = Math.max(
-            0f,
-            enemyRedFlashTimer - enemyDelta
+            0f, enemyRedFlashTimer - enemyDelta
         );
 
-        // Smoothly enlarge and shrink the enemy
-        float enemyBuffScale = 1.0f;
+        intimidateTimer = Math.max(
+            0f, intimidateTimer - enemyDelta
+        );
+
+
+        // Charge animation
+        float enemyBuffScale = 1f;
 
         if (enemyRedFlashTimer > 0f) {
             float progress =
                 1f - enemyRedFlashTimer / ENEMY_BUFF_DURATION;
 
-            enemyBuffScale = 1.0f + 0.3f
+            enemyBuffScale = 1f + 0.3f
                 * (float) Math.sin(progress * Math.PI);
         }
 
-// Keep the enemy centered while its size changes
-        float buffedEnemySize = enemySize * enemyBuffScale;
-        float buffedEnemyX =
-            enemyX - (buffedEnemySize - enemySize) / 2f;
-        float buffedEnemyY =
-            enemyY - (buffedEnemySize - enemySize) / 2f;
+        // Math: Calculator grows and turns red first.
+        boolean mathEnemyEffect =
+            "ENEMY_BUFF".equals(mathAnimationState);
 
-// Preserve transparency during enemy fade effects
-        if (enemyRedFlashTimer > 0f) {
-            batch.setColor(1f, 0.1f, 1f, enemyAlpha);
+        if (mathEnemyEffect) {
+            float progress = 1f
+                - mathAnimationTimer / 0.45f;
+
+            enemyBuffScale = 1f + 0.15f
+                * (float) Math.sin(progress * Math.PI);
+        }
+
+        // Intimidate animation
+        float intimidateScale = 1f;
+
+        if (intimidateTimer > 0f) {
+            float progress =
+                1f - intimidateTimer / INTIMIDATE_DURATION;
+
+            intimidateScale = 1f - 0.15f
+                * (float) Math.sin(progress * Math.PI);
+        }
+
+        float finalEnemyScale = enemyBuffScale * intimidateScale;
+        float buffedEnemySize = enemySize * finalEnemyScale;
+
+        if (mathEnemyEffect) {
+            batch.setColor(1f, 0f, 0f, enemyAlpha);
+        } else if (intimidateTimer > 0f) {
+            batch.setColor(
+                INTIMIDATE_PURPLE_R,
+                INTIMIDATE_PURPLE_G,
+                INTIMIDATE_PURPLE_B,
+                enemyAlpha
+            );
+        } else if (enemyRedFlashTimer > 0f) {
+            batch.setColor(1f, 0f, 0f, enemyAlpha);
         } else {
             batch.setColor(1f, 1f, 1f, enemyAlpha);
         }
 
+
+
+        float drawWidth = buffedEnemySize;
+        float drawHeight = buffedEnemySize;
+
+        if (currentSprite == heavyTungTexture) {
+            drawWidth *= 2f;
+            drawHeight *= 2f;
+        }
+
+        // ขยาย Mathmind เฉพาะตอน Calculator ใช้ Math
+        if (round == 3 && currentSprite == assets.getMathmind()) {
+            float mathScale = 1.25f; //
+            drawWidth *= mathScale;
+            drawHeight *= mathScale;
+        }
+
+        // ขยาย MindBook เฉพาะตอนแสดงภาพ MindBook.png
+        if (round == 4
+            && currentSprite == assets.getMindBook()) {
+            float mindBookScale = 1.25f;
+            drawWidth *= mindBookScale;
+            drawHeight *= mindBookScale;
+        }
+
+
+        // ขยายจากจุดกึ่งกลางของศัตรู
+        float drawX = enemyX + (enemySize - drawWidth) / 2f;
+        float drawY = enemyY + (enemySize - drawHeight) / 2f;
+
+
+
         batch.draw(
             currentSprite,
-            buffedEnemyX,
-            buffedEnemyY,
-            buffedEnemySize,
-            buffedEnemySize
+            drawX,
+            drawY,
+            drawWidth,
+            drawHeight
         );
+
+
+        // Draw the Stun effect above the enemy.
+
+        // Draw the Stun effect above the enemy.
+        if (stunEffectTimer > 0f && enemyAlpha > 0f) {
+            float stunSize = enemySize * 0.8f;
+            float stunX = enemyX + enemySize * 0.1f;
+            float stunY = enemyY + enemySize * 0.05f;
+
+            // Fade out during the final 0.5 seconds.
+            float fadeDuration = 0.5f;
+            float alpha = Math.min(
+                1f,
+                stunEffectTimer / fadeDuration
+            );
+
+            // Apply the calculated alpha to the image.
+            batch.setColor(
+                1f,
+                1f,
+                1f,
+                alpha * enemyAlpha
+            );
+
+            batch.draw(
+                stunTexture,
+                stunX,
+                stunY,
+                stunSize,
+                stunSize
+            );
+
+            batch.setColor(Color.WHITE);
+        }
+
 
         batch.setColor(Color.WHITE);
 
         // Draw Air Slash over the enemy during the player's attack.
+
+
+        // Draw Air Slash over the enemy during the player's attack.
         if (showAirSlash) {
+            Texture slashTexture = activeAirSlashTexture != null
+                ? activeAirSlashTexture
+                : airSlashTexture;
+
             float slashHeight = enemySize * 1.15f;
             float slashWidth = slashHeight
-                * airSlashTexture.getWidth()
-                / airSlashTexture.getHeight();
+                * slashTexture.getWidth()
+                / slashTexture.getHeight();
 
             float slashX = enemyX + (enemySize - slashWidth) / 2f;
             float slashY = enemyY + (enemySize - slashHeight) / 2f;
 
+            // Save the original batch color.
+            Color previousColor = batch.getColor().cpy();
+
+            // LifeSteal makes Air Slash red.
+            if (lifeStealActive) {
+                batch.setColor(1f, 0.25f, 0.25f, previousColor.a);
+            }
+
             batch.draw(
-                airSlashTexture,
+                slashTexture,
                 slashX,
                 slashY,
                 slashWidth,
                 slashHeight
             );
+
+            // Restore the original color for other sprites.
+            batch.setColor(previousColor);
         }
+
+
 
         // PLAYER SPRITE: hide the player while Air Slash is active.
         float playerSize = screenHeight * 0.55f;
@@ -390,6 +665,20 @@ public class BattleRenderer {
             buffAnimationTimer - delta
         );
 
+        lifeStealBuffTimer = Math.max(
+            0f,
+            lifeStealBuffTimer - delta
+        );
+        doubleSlashBuffTimer = Math.max(
+            0f,
+            doubleSlashBuffTimer - delta
+        );
+        stunBuffTimer = Math.max(
+            0f,
+            stunBuffTimer - delta
+        );
+
+
         // Smoothly enlarge and shrink the sword
         float buffProgress = 0f;
 
@@ -400,8 +689,41 @@ public class BattleRenderer {
             buffProgress = (float) Math.sin(progress * Math.PI);
         }
 
+        immortalBuffTimer = Math.max(
+            0f,
+            immortalBuffTimer - delta
+        );
+
+
+
         float buffScale =
             1f + (BUFF_MAX_SCALE - 1f) * buffProgress;
+        mindLockDebuffTimer = Math.max(
+            0f,
+            mindLockDebuffTimer - delta
+        );
+
+        boolean mindLockPlayerEffect = mindLockDebuffTimer > 0f;
+
+        // Math: player shrinks briefly during the purple debuff.
+        boolean mathPlayerEffect =
+            "PLAYER_DEBUFF".equals(mathAnimationState);
+
+        if (mathPlayerEffect) {
+            float progress = 1f
+                - mathAnimationTimer / 0.45f;
+
+            buffScale *= 1f - 0.10f
+                * (float) Math.sin(progress * Math.PI);
+        }
+        if (mindLockPlayerEffect) {
+            float progress =
+                1f - mindLockDebuffTimer / MIND_LOCK_DEBUFF_DURATION;
+
+            buffScale *= 1f - 0.15f
+                * (float) Math.sin(progress * Math.PI);
+        }
+
 
         float swordOffsetY =
             (float) Math.sin(swordAnimationTimer * SWORD_FLOAT_SPEED)
@@ -500,13 +822,42 @@ public class BattleRenderer {
                     playerWidth,
                     playerSize
                 );
+                // Choose the sword color while an animation is active
+                if (mindLockPlayerEffect) {
+                    // Mind Lock: purple
+                    batch.setColor(0.65f, 0.30f, 0.90f, 1f);
 
-                // ดาบปกติ พร้อมเอฟเฟกต์ Buff
-                if (redFlashTimer > 0f) {
+                } else if (mathPlayerEffect) {
+                    // Math debuff: purple
+                    batch.setColor(0.65f, 0.30f, 0.90f, 1f);
+                }
+                // Choose the sword color while an animation is active
+                else if (redFlashTimer > 0f) {
+                    // Sharpen: red
                     batch.setColor(1f, 0f, 0f, 1f);
+
+                } else if (stunBuffTimer > 0f) {
+                    // Stun: yellow briefly
+                    batch.setColor(1f, 0.9f, 0.1f, 1f);
+
+                } else if (immortalActive) {
+                    // Immortal: stay blue while the buff is active
+                    batch.setColor(0.2f, 0.65f, 1f, 1f);
+
+                } else if (lifeStealBuffTimer > 0f) {
+                    // LifeSteal: green
+                    batch.setColor(0.2f, 1f, 0.2f, 1f);
+
+                } else if (doubleSlashBuffTimer > 0f) {
+                    // DoubleSlash: orange
+                    batch.setColor(1f, 0.5f, 0.1f, 1f);
+
                 } else {
                     batch.setColor(Color.WHITE);
                 }
+
+
+
 
                 batch.draw(
                     insecureSword,
@@ -866,7 +1217,7 @@ public class BattleRenderer {
                     "Slash",
                     "Shield",
                     "Cure",
-                    "Sharpen"
+                    "Intimidate"
                 };
                 break;
 
@@ -907,6 +1258,12 @@ public class BattleRenderer {
                 break;
         }
 
+
+
+
+
+
+
         float[] textX = {
             menuX + gap + 8f,
             menuX + gap + cellWidth + gap + 8f,
@@ -931,8 +1288,27 @@ public class BattleRenderer {
                 font.draw(batch, options[i], textX[i], textY[i]);
             }
         }
+        System.out.println(
+            "noteLocked = " + noteLocked
+                + ", currentMenu = " + currentMenu
+        );
+
+        // แสดง X เฉพาะเมื่อ NOTE ถูก Mind Lock และอยู่หน้าเมนูหลัก
+        if (noteLocked && "MAIN_MENU".equals(currentMenu)) {
+            float xSize = screenHeight * 0.15f;
+
+            batch.draw(
+                xEffectTexture,
+                textX[1] + 10f,
+                textY[1] - xSize * 0.75f,
+                xSize,
+                xSize
+            );
+
+        }
 
         batch.end();
+
     }
 
     private void drawNoteInputPanel(String noteInput) {
@@ -1152,6 +1528,18 @@ public class BattleRenderer {
             if (texture != null) {
                 texture.dispose();
             }
+        }
+        if (airSlashTexture2 != null) {
+            airSlashTexture2.dispose();
+        }
+        if (stunTexture != null) {
+            stunTexture.dispose();
+        }
+        if (heavyTungTexture != null) {
+            heavyTungTexture.dispose();
+        }
+        if (xEffectTexture != null) {
+            xEffectTexture.dispose();
         }
 
     }

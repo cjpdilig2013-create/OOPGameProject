@@ -22,6 +22,7 @@ public class TurnManager {
         return currentTurn.equals("Enemy");
     }
 
+
     //After enemy is done attacking switch to player
     public void switchToPlayer() {
         currentTurn = "Player";

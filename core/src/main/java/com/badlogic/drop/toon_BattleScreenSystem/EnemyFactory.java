@@ -13,40 +13,32 @@ public class EnemyFactory {
 
     //Round 1 = first enemy, round 2 = second enemy, and so on
     private static final List<EnemyInfo> ENEMIES = Arrays.asList(
-        new EnemyInfo("Garlic Man", 60, 12, 8, 12, new MoveInfo[] {
-            damage("Garlic Punch", 10, "Garlic Man uses Garlic Punch!"),
-            charge("Mega Garlic Smash", 15, "Garlic Man charges a powerful attack!")
+        new EnemyInfo("Garlic Man", 60, 12, 8, 10, new MoveInfo[] {
+            new DamageMoveInfo("Garlic Punch", 10, "Garlic Man uses Garlic Punch!")
         }),
 
-        new EnemyInfo("Tung Tung Man", 100, 18, 10, 14, new MoveInfo[] {
-            damage("Tung Tung Bong", 15, "Tung Tung Man uses Tung Tung Bong!"),
-            charge("Mega Tung Tung Bong", 20, "Tung Tung Man charges a powerful attack!")
+        new EnemyInfo("Tung Tung Man", 100, 18, 10, 10, new MoveInfo[] {
+            new DamageMoveInfo("Tung Tung Bong", 15, "Tung Tung Man uses Tung Tung Bong!"),
+            new ChargeMoveInfo("Mega Tung Tung Bong", 20, "Tung Tung Man charges a powerful attack!")
         }),
 
-        new EnemyInfo("Calculator", 120, 21, 12, 15, new MoveInfo[] {
-            damage("Calculate", 18, "Calculator uses Calculate!"),
-            charge("Ultimate Calculation", 23, "Calculator charges a powerful attack!")
+        new EnemyInfo("Calculator", 150, 25, 14, 10, new MoveInfo[] {
+            new DamageMoveInfo("Calculate", 18, "Calculator uses Calculate!"),
+            new MathMoveInfo()
         }),
 
-        new EnemyInfo("Angry Book", 140, 24, 14, 16, new MoveInfo[] {
-            damage("Paper Cut", 21, "Angry Book uses Paper Cut!"),
-            charge("Paper Storm", 26, "Angry Book charges a powerful attack!")
+        new EnemyInfo("Angry Book", 180, 30, 18, 10, new MoveInfo[] {
+            new DamageMoveInfo("Paper Cut", 21, "Angry Book uses Paper Cut!"),
+            new MindLockMoveInfo("Mind Lock", 0, "Angry Book uses Mind Lock!")
         }),
 
-        new EnemyInfo("Professor Boss", 170, 28, 16, 18, new MoveInfo[] {
-            damage("Final Exam", 25, "Professor Boss uses Final Exam!"),
-            charge("Ultimate Final Exam", 30, "Professor Boss charges a powerful attack!")
+        new EnemyInfo("Professor Boss", 200, 25, 20, 10, new MoveInfo[] {
+            new DamageMoveInfo("Final Exam", 25, "Professor Boss uses Final Exam!"),
+            new ChargeMoveInfo("Ultimate Final Exam", 30, "Professor Boss charges the final exam attack!"),
+            new MathMoveInfo(),
+            new MindLockMoveInfo("Mind Lock", 0, "Professor Nek uses Mind Lock!")
         })
     );
-
-    //Short names so the list above is easy to read
-    private static MoveInfo damage(String name, int power, String description) {
-        return new MoveInfo(name, power, description, false);
-    }
-
-    private static MoveInfo charge(String name, int power, String description) {
-        return new MoveInfo(name, power, description, true);
-    }
 
     //Finds the enemy for a round
     private static EnemyInfo getInfo(int round) {
@@ -66,7 +58,7 @@ public class EnemyFactory {
         return getInfo(round).createEnemy();
     }
 
-    //OOP POLYMORPHISM (DamageMove and ChargeMove are both Moves, so they go in the same array)
+    //OOP POLYMORPHISM (DamageMove, ChargeMove, MathMove... are all Moves, so they go in the same array)
     public static Move[] createEnemyMoves(int round) {
         return getInfo(round).createMoves();
     }

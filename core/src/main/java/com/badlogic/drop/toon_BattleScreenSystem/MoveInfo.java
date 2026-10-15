@@ -1,33 +1,22 @@
 package com.badlogic.drop.toon_BattleScreenSystem;
 
-import com.badlogic.drop.ot_MoveSkillsSystem.ChargeMove;
-import com.badlogic.drop.ot_MoveSkillsSystem.DamageMove;
 import com.badlogic.drop.ot_MoveSkillsSystem.Move;
 
 //Info for one enemy move. We keep the info instead of the Move itself
-//because every battle needs a fresh Move object (ChargeMove remembers if it is charged)
-public class MoveInfo {
+//because every battle needs a fresh Move object (ChargeMove and MathMove remember if they were used)
+//Each kind of move has its own subclass (DamageMoveInfo, ChargeMoveInfo, ...) that knows how to create its Move
+//To add a new kind of move, just make a new subclass. Nothing else needs to change (Open/Closed Principle)
+public abstract class MoveInfo {
     private final String name;
-    private final int power;
-    private final String description;
-    private final boolean isCharge;
 
-    public MoveInfo(String name, int power, String description, boolean isCharge) {
+    public MoveInfo(String name) {
         this.name = name;
-        this.power = power;
-        this.description = description;
-        this.isCharge = isCharge;
     }
 
     public String getName() {
         return name;
     }
 
-    //Creates a new Move from this info
-    public Move createMove() {
-        if (isCharge) {
-            return new ChargeMove(name, power, description);
-        }
-        return new DamageMove(name, power, description);
-    }
+    //Creates a new Move from this info (every subclass does this in its own way)
+    public abstract Move createMove();
 }

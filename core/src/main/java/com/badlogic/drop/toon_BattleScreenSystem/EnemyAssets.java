@@ -17,6 +17,12 @@ public class EnemyAssets {
     private final Sound enemyDefeatedSound;
     private Music battleMusic;
 
+    //Special sprites that an enemy only shows while using one of its special moves
+    private final Texture mathmindSprite;
+    private final Texture mindBookSprite;
+    private final Texture heavyNekSprite;
+    private final Texture mindNekSprite;
+
     public EnemyAssets() {
         //One entry per enemy. Order = round number.
         //Sprites for the Enemies (4 states: Idle, Attack, Hurt, Dead)
@@ -50,12 +56,26 @@ public class EnemyAssets {
         insecureSword = new Texture("creatures/swordstand.png");
         insecureSword.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest);
 
+        mathmindSprite = loadSprite("enemies/Mathmind.png");
+        // Special sprite used only when Angry Book activates its special move.
+        mindBookSprite = loadSprite("enemies/MindBook.png");
+        // Special sprite used when Nek activates Charge.
+        heavyNekSprite = loadSprite("enemies/HeavyNek.png");
+        // Special sprite used when Nek activates Math.
+        mindNekSprite = loadSprite("enemies/MindNek.png");
+
         //Sound effect for when the enemy is defeated
         enemyDefeatedSound = Gdx.audio.newSound(Gdx.files.internal("sounds/enemydefeated-1.mp3"));
     }
 
     private String[] poses(String idle, String attack, String hurt, String dead) {
         return new String[] {idle, attack, hurt, dead};
+    }
+
+    private Texture loadSprite(String path) {
+        Texture texture = new Texture(path);
+        texture.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest);
+        return texture;
     }
 
     //Finds the assets for a round (round 1 = first enemy in the list)
@@ -76,6 +96,11 @@ public class EnemyAssets {
     public Texture getAttack(int round) { return getSet(round).getSprite(1); }
     public Texture getHurt(int round) { return getSet(round).getSprite(2); }
     public Texture getDead(int round) { return getSet(round).getSprite(3); }
+
+    public Texture getMathmind() { return mathmindSprite; }
+    public Texture getMindBook() { return mindBookSprite; }
+    public Texture getHeavyNek() { return heavyNekSprite; }
+    public Texture getMindNek() { return mindNekSprite; }
 
     //Enemy size as a fraction of the window height (used by the BattleRenderer)
     public float getEnemyScale(int round) {
@@ -108,5 +133,9 @@ public class EnemyAssets {
         for (EnemyAssetSet set : enemies) set.dispose();
         insecureSword.dispose();
         enemyDefeatedSound.dispose();
+        mathmindSprite.dispose();
+        mindBookSprite.dispose();
+        heavyNekSprite.dispose();
+        mindNekSprite.dispose();
     }
 }

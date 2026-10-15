@@ -127,8 +127,25 @@ public String playerTurn(Move move) {
 
         return result;
     }
+
 //--------------------------------------------------------------------------------------------------------------------------------------
 
+
+    // Skip the enemy's turn when it is stunned.
+    public String skipEnemyTurn() {
+
+        if (isBattleOver()) {
+            return "Battle is already over.";
+        }
+
+        if (!turnManager.isEnemyTurn()) {
+            return "It is not the enemy's turn.";
+        }
+
+        turnManager.switchToPlayer();
+
+        return enemy.getName() + " is stunned and cannot move!";
+    }
 
 
     //Makes sure that when we use our move it actually hits our target AKA the enemy

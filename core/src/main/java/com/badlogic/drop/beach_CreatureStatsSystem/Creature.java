@@ -32,26 +32,42 @@ public class Creature {
      * @return the damage actually dealt
      */
 
+
+    /**
+     * Subtracts HP (never below 0).
+     * A pending defend reduction is applied to the incoming hit
+     * and lasts for one hit unless the reduction is permanent.
+     *
+     * @return the damage actually dealt
+     */
     public int takeDamage(int amount) {
         if (amount <= 0) {
             return 0;
         }
 
         int before = stats.getHp();
+        int finalDamage;
 
-        // Apply shield reduction to this incoming hit.
-        int finalDamage = Math.max(0, amount - defendReduction);
+        if (permanentDefendReduction) {
+            // Immortal: block all incoming damage.
+            finalDamage = 0;
+        } else if (defendReduction > 0) {
+            // Defend: reduce incoming damage by a percentage.
+            finalDamage = (int) Math.ceil(
+                amount * (1.0 - defendReduction / 100.0)
+            );
 
-        // A successful hit consumes the shield,
-        // even if the shield blocks all damage.
-        if (!permanentDefendReduction) {
+            // Consume Defend after one hit.
             clearDefendReduction();
+        } else {
+            finalDamage = amount;
         }
 
         stats.setHp(Math.max(0, before - finalDamage));
 
         return before - stats.getHp();
     }
+
 
 
     /**

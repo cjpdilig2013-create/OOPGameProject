@@ -17,6 +17,9 @@ import com.badlogic.drop.ot_MoveSkillsSystem.SpecialSkillMove;
 import com.badlogic.drop.ot_MoveSkillsSystem.ChargeMove;
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.drop.ot_MoveSkillsSystem.IntimidateMove;
+import com.badlogic.drop.ot_MoveSkillsSystem.MathMove;
+import com.badlogic.drop.ot_MoveSkillsSystem.MindLockMove;
 
 // OOP Inheritance: BattleScreen extends ScreenAdapter.
 // This class controls the game's flow, not how each image is drawn.
@@ -50,6 +53,10 @@ public class BattleScreen extends ScreenAdapter {
     private int immortalTurnsRemaining = 0;
     private int immortalOriginalDefendReduction = 0;
 
+    // Stun NOTE
+    private boolean stunActive = false;
+    private boolean enemyStunned = false;
+
     private float enemyTurnTimer = 0f;
     private float enemyFadeTimer = 0f;
     private static final float ENEMY_FADE_DURATION = 0.35f;
@@ -65,6 +72,11 @@ public class BattleScreen extends ScreenAdapter {
 
     private float enemyBuffScale = 1.0f;
     private float enemyRedFlashTimer = 0f;
+
+    // Intimidate: reduce enemy Attack
+    private boolean intimidateActive = false;
+    private int enemyOriginalAttack = 0;
+    private int enemyReducedAttack = 0;
 
     // Player Sharpen animation
     private float playerBuffScale = 1.0f;
@@ -84,6 +96,43 @@ public class BattleScreen extends ScreenAdapter {
     private Move specialSkillMove;
 
     private Move[] enemyMoves;
+
+    // Calculator's Math status
+    private int mathTurnsRemaining = 0;
+    private int calculatorOriginalAttack = 0;
+    private int playerOriginalAttack = 0;
+    private boolean mathEffectActive = false;
+    private boolean mindLockActivatedThisTurn = false;
+
+    // Calculator Math animation sequence
+    private enum MathAnimationState {
+        NONE,
+        ENEMY_BUFF,
+        PLAYER_DEBUFF
+    }
+
+    // Angry Book: Mind Lock
+    private int noteLockTurnsRemaining = 0;
+
+    private boolean showingMindBookSprite = false;
+    private float mindBookSpriteTimer = 0f;
+    private static final float MINDBOOK_SPRITE_DURATION = 0.75f;
+    // Mind Lock debuff effect on player
+    private float mindLockDebuffTimer = 0f;
+    private static final float MIND_LOCK_DEBUFF_DURATION = 0.5f;
+
+    private MathAnimationState mathAnimationState = MathAnimationState.NONE;
+
+    private float mathAnimationTimer = 0f;
+
+    private static final float MATH_ENEMY_EFFECT_DURATION = 0.45f;
+    private static final float MATH_PLAYER_EFFECT_DURATION = 0.45f;
+
+    // Mathmind sprite is shown only briefly when Math is used
+    private float mathSpriteTimer = 0f;
+    private static final float MATH_SPRITE_DURATION = 0.75f;
+    private boolean showingMathSprite = false;
+
 
     private Sound buttonSound;
 
@@ -109,6 +158,9 @@ public class BattleScreen extends ScreenAdapter {
     private boolean victoryPending = false;
     private float victoryTimer = 0f;
 
+    private float enemyStunPauseTimer = 0f;
+    private static final float ENEMY_STUN_PAUSE_DURATION = 2.5f;
+
 
     public BattleScreen(Game game) {
         this.game = game;
@@ -121,7 +173,19 @@ public class BattleScreen extends ScreenAdapter {
     private static final float MENU_HIDE_DURATION = 0.3f;
 
     private Sound enemyChargeSound;
+    private Texture stunTexture;
+    private Sound stunSound;
 
+
+    private boolean enemySkippedTurn = false;
+    private float stunEffectTimer = 0f;
+
+
+    private static final float STUN_EFFECT_DURATION = 1.5f;
+
+    private Texture heavyTungTexture;
+    private boolean heavyTungAttackPending = false;
+    private boolean heavyNekChargeActive = false;
 
 
     @Override
@@ -139,8 +203,18 @@ public class BattleScreen extends ScreenAdapter {
         enemyChargeSound = Gdx.audio.newSound(
             Gdx.files.internal("sounds/buff01.mp3")
         );
+        stunTexture = new Texture(
+            Gdx.files.internal("effect/Stun.png")
+        );
+
+        stunSound = Gdx.audio.newSound(
+            Gdx.files.internal("effect/ShockedSoundEffect.mp3")
+        );
         // Create renderer + assets only once when this battle screen opens.
         renderer = new BattleRenderer();
+        heavyTungTexture = new Texture(
+            Gdx.files.internal("enemies/HeavyTung.png")
+        );
 
         assets = new EnemyAssets();
         assets.playMusic(round);
@@ -159,22 +233,23 @@ public class BattleScreen extends ScreenAdapter {
         //2 move
         defendMove = new DefendMove(
             "Defend",
-            9999,
+            50,
             "Insecure Sword braces for an incoming attack!"
         );
 
         //3 move
+        // 3 move: Cure
         healMove = new HealMove(
-            "Heal",
-            50,
-            "Insecure Sword restores 50 HP!"
+            "Cure",
+            1,
+            "Restores 20-40 HP"
         );
         //select sound
         buttonSound = Gdx.audio.newSound(
             Gdx.files.internal("effect/ButtonSoundEffect.mp3")
         );
 
-        specialSkillMove = new SpecialSkillMove();
+        specialSkillMove = new IntimidateMove();
         // Create the enemy's two moves
         enemyMoves = EnemyFactory.createEnemyMoves(round);
         enemyMove = enemyMoves[0];
@@ -222,10 +297,20 @@ public class BattleScreen extends ScreenAdapter {
                 return;
             }
 
+
             renderer.setCurrentMenu(menuState.name());
             renderer.setSelectedChoice(selectedChoice);
+
             renderer.setShowNoteInput(typingNote);
             renderer.setNoteInputText(noteInput.toString());
+            renderer.setNoteLocked(noteLockTurnsRemaining > 0);
+
+            System.out.println(
+                "Menu: " + menuState.name()
+                    + " | Note locked: " + (noteLockTurnsRemaining > 0)
+            );
+
+
             renderer.render(
                 assets, currentSprite, player, enemy, round,
                 battleMessage, showPlayerSword, airSlashActive,
@@ -315,13 +400,18 @@ public class BattleScreen extends ScreenAdapter {
                             battleMessage = "Choose your move!";
                             break;
 
+
                         case 1:
-                            if (renderer.getAttachedNoteCount() < round) {
+                            if (noteLockTurnsRemaining > 0) {
+                                battleMessage = "Mind Lock! NOTE is sealed for "
+                                    + noteLockTurnsRemaining + " turns!";
+                            } else if (renderer.getAttachedNoteCount() < round) {
                                 startNoteTyping();
                             } else {
                                 battleMessage = "No more NOTE available this round!";
                             }
                             break;
+
 
 
                         case 2:
@@ -341,22 +431,21 @@ public class BattleScreen extends ScreenAdapter {
 
             } else if (menuState == MenuState.NOTE_CONFIRM) {
                 if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
+
                     if (selectedNoteChoice == 0) {
-                        if (renderer.getAttachedNoteCount() < round) {
-
-                            // Open the text input dialog.
+                        if (noteLockTurnsRemaining > 0) {
+                            battleMessage = "Mind Lock! NOTE is sealed for "
+                                + noteLockTurnsRemaining + " turns!";
                             menuState = MenuState.MAIN_MENU;
-
+                        } else if (renderer.getAttachedNoteCount() < round) {
+                            menuState = MenuState.MAIN_MENU;
                             startNoteTyping();
-
                         } else {
                             battleMessage = "No more NOTE available this round!";
                             menuState = MenuState.MAIN_MENU;
                         }
-                    } else {
-                        battleMessage = "You chose not to use NOTE.";
-                        menuState = MenuState.MAIN_MENU;
                     }
+
 
                     selectedChoice = 1;
                 }
@@ -421,13 +510,25 @@ public class BattleScreen extends ScreenAdapter {
         }
 
 
+
         if (animationTimer > 0f) {
             animationTimer -= delta;
 
             if (animationTimer <= 0f) {
                 currentSprite = assets.getIdle(round);
+                heavyNekChargeActive = false;
                 animationTimer = 0f;
                 waitingForEnemyAnimation = false;
+            }
+        }
+
+        if (enemyStunPauseTimer > 0f) {
+            enemyStunPauseTimer -= delta;
+
+            if (enemyStunPauseTimer <= 0f) {
+                enemyStunPauseTimer = 0f;
+                waitingForEnemyAnimation = false;
+                currentSprite = assets.getIdle(round);
             }
         }
 
@@ -452,25 +553,138 @@ public class BattleScreen extends ScreenAdapter {
                 boolean shieldWasActive = showShield;
 
                 // Keep using the same ChargeMove object while charging.
-                if (!(enemyMove instanceof ChargeMove
-                    && ((ChargeMove) enemyMove).isCharged())) {
-                    enemyMove = enemyMoves[random.nextInt(enemyMoves.length)];
+                // Round 3: Calculator chooses its move.
+                // Round 3: Calculator chooses its move.
+
+                if (round == 3) {
+                    // Calculator keeps its existing Math behavior.
+                    if (mathEffectActive) {
+                        enemyMove = new DamageMove(
+                            "Calculate",
+                            18,
+                            "Calculator uses Calculate!"
+                        );
+                    } else {
+                        enemyMove = random.nextBoolean()
+                            ? new MathMove()
+                            : new DamageMove(
+                            "Calculate",
+                            18,
+                            "Calculator uses Calculate!"
+                        );
+                    }
+                } else {
+                    // Keep a charged move for its follow-up attack.
+                    boolean continuingCharge =
+                        enemyMove instanceof ChargeMove
+                            && ((ChargeMove) enemyMove).isCharged();
+
+                    if (!continuingCharge) {
+                        do {
+                            enemyMove = enemyMoves[random.nextInt(enemyMoves.length)];
+
+
+                        } while (
+                            ((round == 4 || round == 5)
+                                && noteLockTurnsRemaining > 0
+                                && enemyMove instanceof MindLockMove)
+                                ||
+                                (round == 5
+                                    && enemyMove instanceof MathMove
+                                    && ((MathMove) enemyMove).hasBeenUsed())
+                        );
+
+
+                    }
                 }
+
 
 
                 System.out.println("Turn before enemy action: "
                     + battle.getTurnManager().getCurrentTurn());
 
+
+
                 boolean wasImmortal = immortalActive;
-                String result = battle.enemyTurn(enemyMove);
+                boolean enemyWasStunned = enemyStunned;
+
+// Remember whether Professor Nek is about to perform
+// the attack following Charge, before ChargeMove resets its state.
+                boolean nekChargedAttack =
+                    round == 5
+                        && !enemyWasStunned
+                        && enemyMove instanceof ChargeMove
+                        && ((ChargeMove) enemyMove).isCharged();
+
+                String result;
+
+
+                boolean usedMindLock = false;
+
+                if (enemyWasStunned) {
+                    enemySkippedTurn = true;
+                    result = battle.skipEnemyTurn();
+                    enemyStunned = false;
+                } else {
+                    enemySkippedTurn = false;
+                    result = battle.enemyTurn(enemyMove);
+
+
+                    if ((round == 4 || round == 5)
+                        && enemyMove instanceof MindLockMove) {
+
+                        usedMindLock = true;
+                        noteLockTurnsRemaining = 3;
+
+                        System.out.println(
+                            "Mind Lock activated! Turns = " + noteLockTurnsRemaining
+                        );
+
+                        renderer.playMindLockDebuffAnimation();
+
+                        // Book uses MindBook; Nek uses MindNek.
+                        if (round == 4) {
+                            currentSprite = assets.getMindBook();
+                        } else {
+                            currentSprite = assets.getMindNek();
+                        }
+
+                        showingMindBookSprite = true;
+                        mindBookSpriteTimer = MINDBOOK_SPRITE_DURATION;
+                        animationTimer = 0f;
+                        waitingForEnemyAnimation = true;
+                    }
+
+                }
+
+                boolean usedMath = enemyMove instanceof MathMove
+                    && ((MathMove) enemyMove).hasBeenUsed();
+                if (usedMath) {
+                    activateMathEffect((MathMove) enemyMove);
+                }
+
+
 
                 System.out.println("DEBUG ENEMY RESULT: [" + result + "]");
 
                 System.out.println("Enemy result: " + result);
                 boolean enemyIsCharging = result.contains("is charging up");
-                if (!enemyIsCharging && wasImmortal) {
+
+                // HeavyTung: จำสถานะ Charge ของศัตรูตัวที่ 2
+                if (round == 2 && enemyIsCharging) {
+                    heavyTungAttackPending = true;
+                }
+
+                boolean useHeavyTungAttack =
+                    round == 2
+                        && !enemyIsCharging
+                        && !enemyWasStunned
+                        && heavyTungAttackPending;
+
+                if (!enemyWasStunned && !enemyIsCharging && wasImmortal) {
                     renderer.playBlockSound();
                 }
+
                 if (!enemyIsCharging && immortalActive) {
                     immortalTurnsRemaining--;
 
@@ -481,14 +695,28 @@ public class BattleScreen extends ScreenAdapter {
 
                 // A charging turn does not consume the shield.
 
+
                 boolean playerWasDamaged =
                     player.getCurrentHp() < previousPlayerHp;
 
-                if (!enemyIsCharging && shieldWasActive) {
-                    // The shield blocks the incoming attack.
+
+                boolean enemyUsedDebuff =
+                    enemyMove instanceof MathMove
+                        || enemyMove instanceof MindLockMove
+                        || enemyMove instanceof IntimidateMove;
+
+                if (enemyWasStunned) {
+                    // The enemy skipped its turn, so keep the shield active.
+                } else if (!enemyIsCharging
+                    && !enemyUsedDebuff
+                    && shieldWasActive) {
+
+                    // The shield blocks an actual incoming attack.
                     renderer.playBlockSound();
                     showShield = false;
                 }
+
+
 
                 if (playerWasDamaged) {
                     playerHitFlashTimer = PLAYER_HIT_FLASH_DURATION;
@@ -507,23 +735,51 @@ public class BattleScreen extends ScreenAdapter {
                 // Detect whether this turn was spent charging.
                 battleMessage = result;
 
-                if (enemyIsCharging) {
-                    // Play the red charge effect and its matching sound.
+
+
+
+
+                if (enemyWasStunned) {
+                    // Enemy skips its turn and returns to idle.
+                    currentSprite = assets.getIdle(round);
+                    enemyStunPauseTimer = 0f;
+                    enemyFadeTimer = 0f;
+                    waitingForEnemyAnimation = false;
+                    animationTimer = 0f;
+                    enemyTurnTimer = 0f;
+                } else if (usedMath) {
+                } else if (usedMindLock) {
+                    // Keep MindBook sprite visible for a short time.
+
+                } else if (enemyIsCharging) {
                     renderer.playEnemyBuffAnimation();
 
                     if (enemyChargeSound != null) {
                         enemyChargeSound.play(0.5f);
                     }
 
+                    // Keep Nek's normal sprite while charging.
                     currentSprite = assets.getIdle(round);
                     animationTimer = 0f;
+
                 } else {
-                    // Play attack effects when the enemy releases the attack.
                     assets.playEnemyAttack(round);
-                    currentSprite = assets.getAttack(round);
+
+                    if (nekChargedAttack) {
+                        // Professor Nek's attack after charging.
+                        currentSprite = assets.getHeavyNek();
+                    } else if (useHeavyTungAttack) {
+                        currentSprite = heavyTungTexture;
+                        heavyTungAttackPending = false;
+                    } else {
+                        currentSprite = assets.getAttack(round);
+                    }
+
                     animationTimer = 0.75f;
                     waitingForEnemyAnimation = true;
                 }
+
+
 
                 if (!player.isAlive()) {
                     playerDefeated = true;
@@ -548,6 +804,9 @@ public class BattleScreen extends ScreenAdapter {
                 System.out.println(
                     "Sword HP: " + player.getCurrentHp()
                 );
+                tickMathDuration();
+                tickNoteLockDuration();
+
 
             }
         }
@@ -557,6 +816,13 @@ public class BattleScreen extends ScreenAdapter {
             if (airSlashTimer <= 0f) {
                 airSlashActive = false;
                 airSlashTimer = 0f;
+            }
+        }
+        if (mindLockDebuffTimer > 0f) {
+            mindLockDebuffTimer -= delta;
+
+            if (mindLockDebuffTimer < 0f) {
+                mindLockDebuffTimer = 0f;
             }
         }
             // Wait for the first slash effect to finish before the second hit.
@@ -582,6 +848,13 @@ public class BattleScreen extends ScreenAdapter {
                     slashSounds[soundIndex].play();
 
                     battleMessage = secondHitResult;
+                    if (enemy.isAlive() && tryStunEnemy()) {
+                        battleMessage += "\n" + enemyDisplayName + " is stunned!";
+
+                        // Keep the hurt sprite and transparency while stunned.
+                        currentSprite = assets.getHurt(round);
+                        enemyFadeTimer = ENEMY_STUN_PAUSE_DURATION;
+                    }
 
                     if (!enemy.isAlive()) {
                         // The second hit defeated the enemy.
@@ -658,6 +931,28 @@ public class BattleScreen extends ScreenAdapter {
                 playerHitFlashTimer = 0f;
             }
         }
+
+        // Update Calculator Math animation sequence.
+        if (mathAnimationState != MathAnimationState.NONE) {
+            mathAnimationTimer -= delta;
+
+            if (mathAnimationTimer <= 0f) {
+                if (mathAnimationState == MathAnimationState.ENEMY_BUFF) {
+                    // Red Calculator effect finished.
+                    // Now play the purple player debuff effect.
+                    mathAnimationState = MathAnimationState.PLAYER_DEBUFF;
+                    mathAnimationTimer = MATH_PLAYER_EFFECT_DURATION;
+
+                    // Play the debuff sound once.
+                    debuffSound.play(0.5f);
+                } else {
+                    // Both effects finished.
+                    mathAnimationState = MathAnimationState.NONE;
+                    mathAnimationTimer = 0f;
+                }
+            }
+        }
+
         // Update Sharpen animation every frame.
         if (playerRedFlashTimer > 0f) {
             playerRedFlashTimer -= delta;
@@ -708,8 +1003,49 @@ public class BattleScreen extends ScreenAdapter {
                 + noteInput;
         }
 
+        if (stunEffectTimer > 0f) {
+            stunEffectTimer -= delta;
+
+            if (stunEffectTimer < 0f) {
+                stunEffectTimer = 0f;
+            }
+        }
+        if (showingMindBookSprite) {
+            mindBookSpriteTimer -= delta;
+
+            if (mindBookSpriteTimer <= 0f) {
+                mindBookSpriteTimer = 0f;
+                showingMindBookSprite = false;
+
+                currentSprite = assets.getIdle(round);
+                waitingForEnemyAnimation = false;
+            }
+        }
+
+
+        if (showingMathSprite) {
+            mathSpriteTimer -= delta;
+
+            if (mathSpriteTimer <= 0f) {
+                mathSpriteTimer = 0f;
+                showingMathSprite = false;
+
+                currentSprite = assets.getIdle(round);
+                waitingForEnemyAnimation = false;
+            }
+        }
+
+
+
         renderer.setLifeStealActive(lifeStealActive);
         renderer.setImmortalActive(immortalActive);
+        renderer.setStunActive(stunActive);
+        renderer.drawStunEffect(stunEffectTimer);
+        renderer.setMathAnimation(
+            mathAnimationState.name(),
+            mathAnimationTimer
+        );
+
 
         renderer.render(
             assets,
@@ -737,6 +1073,7 @@ public class BattleScreen extends ScreenAdapter {
         renderer.setShowNoteInput(true);
         renderer.setNoteInputText("");
 
+
         Gdx.input.setInputProcessor(new com.badlogic.gdx.InputAdapter() {
             @Override
             public boolean keyTyped(char character) {
@@ -749,6 +1086,9 @@ public class BattleScreen extends ScreenAdapter {
                     noteJustSubmitted = true;
 
                     Gdx.input.setInputProcessor(null);
+
+                    playButtonSound(); // เสียงคลิกเมื่อกด Enter หลังพิมพ์ NOTE
+
                     useNoteWord(noteInput.toString());
 
                     return true;
@@ -815,6 +1155,36 @@ public class BattleScreen extends ScreenAdapter {
         }
     }
 
+    private void tickNoteLockDuration() {
+        if (noteLockTurnsRemaining > 0) {
+            noteLockTurnsRemaining--;
+
+            if (noteLockTurnsRemaining == 0) {
+                battleMessage += "\nMind Lock has ended! NOTE is available again.";
+            }
+        }
+    }
+
+
+
+    private void tickMathDuration() {
+        if (!mathEffectActive) {
+            return;
+        }
+
+        mathTurnsRemaining--;
+
+        if (mathTurnsRemaining <= 0) {
+            enemy.setAttack(calculatorOriginalAttack);
+            player.setAttack(playerOriginalAttack);
+
+            mathTurnsRemaining = 0;
+            mathEffectActive = false;
+        }
+    }
+
+
+
 
     private void updateSurrenderNavigation() {
         if (Gdx.input.isKeyJustPressed(Input.Keys.LEFT)
@@ -860,6 +1230,19 @@ public class BattleScreen extends ScreenAdapter {
             enemyChargeSound.dispose();
             enemyChargeSound = null;
         }
+        if (stunTexture != null) {
+            stunTexture.dispose();
+            stunTexture = null;
+        }
+
+        if (stunSound != null) {
+            stunSound.dispose();
+            stunSound = null;
+        }
+        if (heavyTungTexture != null) {
+            heavyTungTexture.dispose();
+            heavyTungTexture = null;
+        }
     }
 
 
@@ -880,7 +1263,8 @@ public class BattleScreen extends ScreenAdapter {
         if (!"Sharpen".equalsIgnoreCase(keyword)
             && !"DoubleSlash".equalsIgnoreCase(keyword)
             && !"LifeSteal".equalsIgnoreCase(keyword)
-            && !"Immortal".equalsIgnoreCase(keyword)) {
+            && !"Immortal".equalsIgnoreCase(keyword)
+            && !"Stun".equalsIgnoreCase(keyword)) {
             battleMessage = "No such keyword! Choose a command.";
             menuState = MenuState.MAIN_MENU;
             selectedChoice = 0;
@@ -902,9 +1286,11 @@ public class BattleScreen extends ScreenAdapter {
         } else if ("DoubleSlash".equalsIgnoreCase(keyword)) {
             doubleSlashActive = true;
             battleMessage = "DoubleSlash activated! Slash Hit will strike twice!";
+            renderer.playDoubleSlashBuffAnimation();
         } else if ("LifeSteal".equalsIgnoreCase(keyword)) {
             lifeStealActive = true;
             battleMessage = "LifeSteal activated! Recover 25% of Slash damage!";
+            renderer.playLifeStealBuffAnimation();
     } else if ("Immortal".equalsIgnoreCase(keyword)) {
         immortalOriginalDefendReduction = player.getDefendReduction();
 
@@ -912,9 +1298,15 @@ public class BattleScreen extends ScreenAdapter {
         immortalTurnsRemaining = 3;
         player.setPermanentDefendReduction(true);
         player.setDefendReduction(9999);
+            renderer.playImmortalBuffAnimation();
 
         battleMessage = "Immortal activated! 3 turns of invincibility!";
-    }
+        } else if ("Stun".equalsIgnoreCase(keyword)) {
+            stunActive = true;
+            renderer.playStunBuffAnimation();
+            battleMessage = "Stun activated! 15% chance to stun the enemy on every attack!";
+            renderer.playStunBuffAnimation();
+        }
 
 
     // NOTE consumes the player's turn only when valid.
@@ -934,6 +1326,30 @@ public class BattleScreen extends ScreenAdapter {
 
         battleMessage += "\nImmortal has ended!";
     }
+
+
+    private boolean tryStunEnemy() {
+
+        if (!stunActive || !enemy.isAlive() || enemyStunned) {
+            return false;
+        }
+
+        if (random.nextFloat() < 0.15f) {
+            enemyStunned = true;
+            stunEffectTimer = STUN_EFFECT_DURATION;
+
+            if (stunSound != null) {
+                stunSound.play();
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
+
+
 
     private void applyLifeSteal() {
         if (!lifeStealActive) {
@@ -1004,7 +1420,7 @@ public class BattleScreen extends ScreenAdapter {
                     enemyDying = true;
                     enemyDeathFadeTimer = ENEMY_DEATH_FADE_DURATION;
 
-                    if (round < 5) {
+                    if (round < EnemyFactory.getRoundCount()) {
                         waitingForNextRound = true;
                         String nextName = EnemyFactory.getEnemyName(round + 1);
 
@@ -1028,6 +1444,11 @@ public class BattleScreen extends ScreenAdapter {
                             : "Insecure Sword used Slash Hit!"
                     );
                 }
+
+                if (enemy.isAlive() && tryStunEnemy()) {
+                    battleMessage += "\n" + enemyDisplayName + " is stunned!";
+                }
+
                 applyLifeSteal();
                 break;
 
@@ -1058,7 +1479,15 @@ public class BattleScreen extends ScreenAdapter {
 
             case 4:
                 result = battle.playerTurn(specialSkillMove);
-                renderer.playBuffAnimation();
+
+                if (specialSkillMove instanceof IntimidateMove
+                    && debuffSound != null) {
+                    debuffSound.play(0.5f);
+                }
+
+                if (specialSkillMove instanceof IntimidateMove) {
+                    renderer.playIntimidateAnimation();
+                }
 
                 battleMessage = battleStatus(result);
 
@@ -1083,7 +1512,42 @@ public class BattleScreen extends ScreenAdapter {
         waitingToUseMove = false;
         moveDelayTimer = 0f;
         menuState = MenuState.MAIN_MENU;
+
     }
+
+    private void activateMathEffect(MathMove move) {
+        calculatorOriginalAttack = move.getOriginalEnemyAttack();
+        playerOriginalAttack = move.getOriginalPlayerAttack();
+
+        mathTurnsRemaining = 3;
+        mathEffectActive = true;
+
+
+        // Show the correct special sprite for the enemy using Math.
+        if (round == 5) {
+            currentSprite = assets.getMindNek();
+        } else {
+            currentSprite = assets.getMathmind();
+        }
+
+        mathSpriteTimer = MATH_SPRITE_DURATION;
+        showingMathSprite = true;
+
+
+        mathAnimationState = MathAnimationState.ENEMY_BUFF;
+        mathAnimationTimer = MATH_ENEMY_EFFECT_DURATION;
+
+        // Play the buff sound when Calculator starts the Math animation.
+        if (enemyChargeSound != null) {
+            enemyChargeSound.play(0.5f);
+        }
+
+        animationTimer = 0f;
+        waitingForEnemyAnimation = true;
+    }
+
+
+
 
 
     // ROUND TRANSITION
@@ -1093,6 +1557,7 @@ public class BattleScreen extends ScreenAdapter {
     // This also leaves room to add your healing mechanic later.
     private void startNextRound() {
         enemyDying = false;
+        noteLockTurnsRemaining = 0;
         enemyDeathFadeTimer = 0f;
         enemyFadeTimer = 0f;
 
@@ -1116,6 +1581,15 @@ public class BattleScreen extends ScreenAdapter {
 
         immortalActive = false;
         immortalTurnsRemaining = 0;
+
+        stunActive = false;
+        enemyStunned = false;
+        enemySkippedTurn = false;
+        stunEffectTimer = 0f;
+
+        renderer.drawStunEffect(0f);
+
+        heavyTungAttackPending = false;
 
         renderer.removeNoteFromSword();
         showShield = false;

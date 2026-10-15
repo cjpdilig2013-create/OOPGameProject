@@ -221,7 +221,7 @@ public class BattleScreen extends ScreenAdapter {
         currentSprite = assets.getIdle(round);
 
         // PLAYER STATS: create Insecure Sword only once so HP carries between all rounds (healing comes later).
-        player = new PlayerCreature("Insecure Sword", 100, 20, 15, 18);
+        player = new PlayerCreature("Insecure Sword", 200, 20, 15, 100);
         // EnemyFactory centralizes enemy stats and moves.
 
         battle = new Battle(player, enemy);
@@ -668,9 +668,10 @@ public class BattleScreen extends ScreenAdapter {
                 System.out.println("DEBUG ENEMY RESULT: [" + result + "]");
 
                 System.out.println("Enemy result: " + result);
+
                 boolean enemyIsCharging = result.contains("is charging up");
 
-                // HeavyTung: จำสถานะ Charge ของศัตรูตัวที่ 2
+// HeavyTung: จำสถานะ Charge ของศัตรูตัวที่ 2
                 if (round == 2 && enemyIsCharging) {
                     heavyTungAttackPending = true;
                 }
@@ -680,44 +681,21 @@ public class BattleScreen extends ScreenAdapter {
                         && !enemyIsCharging
                         && !enemyWasStunned
                         && heavyTungAttackPending;
+                boolean playerWasDamaged =
+                    player.getCurrentHp() < previousPlayerHp;
 
-                if (!enemyWasStunned && !enemyIsCharging && wasImmortal) {
-                    renderer.playBlockSound();
-                }
-
-                if (!enemyIsCharging && immortalActive) {
+// นับเทิร์น Immortal เมื่อศัตรูได้ลงมือจริง
+                if (!enemyWasStunned && immortalActive) {
                     immortalTurnsRemaining--;
+
+                    System.out.println(
+                        "Immortal turns remaining: " + immortalTurnsRemaining
+                    );
 
                     if (immortalTurnsRemaining <= 0) {
                         endImmortal();
                     }
                 }
-
-                // A charging turn does not consume the shield.
-
-
-                boolean playerWasDamaged =
-                    player.getCurrentHp() < previousPlayerHp;
-
-
-                boolean enemyUsedDebuff =
-                    enemyMove instanceof MathMove
-                        || enemyMove instanceof MindLockMove
-                        || enemyMove instanceof IntimidateMove;
-
-                if (enemyWasStunned) {
-                    // The enemy skipped its turn, so keep the shield active.
-                } else if (!enemyIsCharging
-                    && !enemyUsedDebuff
-                    && shieldWasActive) {
-
-                    // The shield blocks an actual incoming attack.
-                    renderer.playBlockSound();
-                    showShield = false;
-                }
-
-
-
                 if (playerWasDamaged) {
                     playerHitFlashTimer = PLAYER_HIT_FLASH_DURATION;
                 }
